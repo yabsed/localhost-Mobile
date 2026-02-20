@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import io from 'socket.io-client';
 import Constants from 'expo-constants';
+import { initialPosts } from './dummyData';
 
 // Expo Go에서 실행 중인 로컬 PC의 IP 주소를 자동으로 가져옵니다.
 const debuggerHost = Constants.expoConfig?.hostUri;
@@ -68,21 +69,7 @@ export default function App() {
   const [otherUser, setOtherUser] = useState(null);
   
   // 게시물(점) 및 게시판 관련 상태
-  const [posts, setPosts] = useState([
-    { id: 'd1', type: 'post', coordinate: { latitude: 37.471, longitude: 126.935 }, emoji: '🐟', title: '붕어빵 트럭 등장!', content: '슈크림 붕어빵 3개 2천원입니다. 줄 길어요!', createdAt: Date.now() - 100000, comments: [] },
-    { id: 'd2', type: 'post', coordinate: { latitude: 37.469, longitude: 126.933 }, emoji: '🎸', title: '도림천 버스킹 중', content: '노래 엄청 잘 부르시네요. 구경 오세요~', createdAt: Date.now() - 300000, comments: [] },
-    { id: 'd3', type: 'post', coordinate: { latitude: 37.472, longitude: 126.936 }, emoji: '🌧️', title: '갑자기 소나기', content: '우산 챙기세요! 갑자기 비가 쏟아집니다.', photo: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=400', createdAt: Date.now() - 500000, comments: [] },
-    { id: 'd4', type: 'post', coordinate: { latitude: 37.468, longitude: 126.934 }, emoji: '🐈', title: '고양이 찾아요', content: '노란색 치즈냥이 사람 손 엄청 잘 타요.', photo: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400', createdAt: Date.now() - 700000, comments: [] },
-    { id: 'd5', type: 'post', coordinate: { latitude: 37.470, longitude: 126.937 }, emoji: '🚨', title: '사거리 교통사고', content: '차량 두 대 접촉사고 났어요. 차 많이 막힙니다.', photo: 'https://images.unsplash.com/photo-1508344928928-7165b67de128?w=400', createdAt: Date.now() - 200000, comments: [] },
-    { id: 'd6', type: 'post', coordinate: { latitude: 37.473, longitude: 126.932 }, emoji: '🎉', title: '편의점 마감세일', content: '도시락 반값 할인 중입니다. 빨리 오세요!', createdAt: Date.now() - 400000, comments: [] },
-    { id: 'd7', type: 'post', coordinate: { latitude: 37.467, longitude: 126.938 }, emoji: '🔥', title: '불난 것 같아요', content: '저기 연기 엄청 나는데 119 불렀나요?', photo: 'https://images.unsplash.com/photo-1495556650867-99590cea3657?w=400', createdAt: Date.now() - 800000, comments: [] },
-    { id: 'd8', type: 'post', coordinate: { latitude: 37.474, longitude: 126.935 }, emoji: '🎬', title: '드라마 촬영 중', content: '유명 배우 온 것 같아요. 사람 엄청 많음.', photo: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?w=400', createdAt: Date.now() - 150000, comments: [] },
-    { id: 'd9', type: 'post', coordinate: { latitude: 37.471, longitude: 126.931 }, emoji: '🚚', title: '이사차량 길막', content: '골목길 이사차량 때문에 못 지나갑니다. 우회하세요.', photo: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400', createdAt: Date.now() - 600000, comments: [] },
-    { id: 'd10', type: 'post', coordinate: { latitude: 37.469, longitude: 126.939 }, emoji: '🌈', title: '무지개 떴어요', content: '하늘 보세요! 쌍무지개 떴습니다.', createdAt: Date.now() - 50000, comments: [] },
-    { id: 'b1', type: 'board', coordinate: { latitude: 37.475, longitude: 126.936 }, emoji: '🏪', title: '동네 마트 소식', description: '매일매일 할인 정보가 올라옵니다!', createdAt: Date.now(), boardPosts: [
-      { id: 'bp1', title: '오늘의 특가', content: '계란 한 판 4,000원!', createdAt: Date.now() - 100000, comments: [] }
-    ] },
-  ]);
+  const [posts, setPosts] = useState(initialPosts);
   const [modalVisible, setModalVisible] = useState(false);
   const [isAddingPost, setIsAddingPost] = useState(false);
   const [newPost, setNewPost] = useState({ coordinate: null, emoji: '📍', title: '', content: '', description: '', photo: null, type: 'post' });
@@ -92,8 +79,11 @@ export default function App() {
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [newComment, setNewComment] = useState('');
 
+  // 검색 관련 상태
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+
   // 게시판 관련 상태
-  const [boardModalVisible, setBoardModalVisible] = useState(false);
   const [selectedBoardPost, setSelectedBoardPost] = useState(null);
   const [boardPostModalVisible, setBoardPostModalVisible] = useState(false);
   const [addBoardPostModalVisible, setAddBoardPostModalVisible] = useState(false);
@@ -101,6 +91,7 @@ export default function App() {
 
   const socketRef = useRef(null);
   const locationSubscription = useRef(null);
+  const mapRef = useRef(null);
 
   useEffect(() => {
     // 소켓 연결
@@ -217,18 +208,47 @@ export default function App() {
 
   const handleMarkerPress = (post) => {
     setSelectedPost(post);
-    if (post.type === 'board') {
-      setBoardModalVisible(true);
-    } else {
-      setViewModalVisible(true);
-    }
+    setViewModalVisible(true);
+    mapRef.current?.animateToRegion({
+      latitude: post.coordinate.latitude,
+      longitude: post.coordinate.longitude,
+      latitudeDelta: 0.02,
+      longitudeDelta: 0.02,
+    }, 500);
   };
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) {
-      setSelectedPost(viewableItems[0].item);
+      const item = viewableItems[0].item;
+      setSelectedPost(item);
+      mapRef.current?.animateToRegion({
+        latitude: item.coordinate.latitude,
+        longitude: item.coordinate.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      }, 500);
     }
   }).current;
+
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    if (text.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+    const results = posts.filter(p => 
+      p.title.toLowerCase().includes(text.toLowerCase()) || 
+      (p.content && p.content.toLowerCase().includes(text.toLowerCase())) ||
+      (p.description && p.description.toLowerCase().includes(text.toLowerCase()))
+    );
+    setSearchResults(results);
+  };
+
+  const handleSearchResultPress = (post) => {
+    setSearchQuery('');
+    setSearchResults([]);
+    handleMarkerPress(post);
+  };
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
@@ -320,7 +340,34 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={18} color="#666" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="스팟/스테이션 검색"
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
+      </View>
+
+      {searchResults.length > 0 && (
+        <View style={styles.searchResultsContainer}>
+          <FlatList
+            data={searchResults}
+            keyExtractor={item => item.id}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.searchResultItem} onPress={() => handleSearchResultPress(item)}>
+                <Text style={styles.searchResultTitle}>{item.emoji} {item.title}</Text>
+                <Text style={styles.searchResultType}>{item.type === 'board' ? '스테이션' : '스팟'}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
+
       <MapView
+        ref={mapRef}
         style={styles.map}
         initialRegion={{
           latitude: 37.471,
@@ -458,7 +505,7 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* 게시물 보기 모달 */}
+      {/* 통합 보기 모달 (스와이핑) */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -470,59 +517,104 @@ export default function App() {
           style={styles.modalContainer}
         >
           <FlatList
-            data={posts.filter(p => p.type !== 'board')}
+            data={posts}
             keyExtractor={item => item.id}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            initialScrollIndex={selectedPost && selectedPost.type !== 'board' ? posts.filter(p => p.type !== 'board').findIndex(p => p.id === selectedPost.id) : 0}
+            initialScrollIndex={selectedPost ? posts.findIndex(p => p.id === selectedPost.id) : 0}
             getItemLayout={(data, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
             renderItem={({ item }) => (
               <View style={{ width: screenWidth, justifyContent: 'center', alignItems: 'center' }}>
                 <View style={[styles.viewModalContent, { maxHeight: '80%', width: '85%' }]}>
-                  <ScrollView showsVerticalScrollIndicator={false}>
-                    <View style={styles.viewModalHeader}>
-                      <Text style={styles.viewModalEmoji}>{item.emoji}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.viewModalTitle}>{item.title}</Text>
-                        <CountdownTimer createdAt={item.createdAt} />
-                      </View>
-                    </View>
-                    
-                    {item.photo && (
-                      <Image source={{ uri: item.photo }} style={styles.viewModalImage} resizeMode="cover" />
-                    )}
-                    
-                    <Text style={styles.viewModalDescription}>{item.content}</Text>
-                    
-                    {/* 댓글 섹션 */}
-                    <View style={styles.commentsSection}>
-                      <Text style={styles.commentsTitle}>댓글</Text>
-                      {(item.comments || []).map(comment => (
-                        <View key={comment.id} style={styles.commentItem}>
-                          <Text style={styles.commentText}>{comment.text}</Text>
-                          <Text style={styles.commentTime}>{comment.createdAt}</Text>
+                  {item.type === 'post' ? (
+                    <>
+                      <ScrollView showsVerticalScrollIndicator={false}>
+                        <View style={styles.viewModalHeader}>
+                          <Text style={styles.viewModalEmoji}>{item.emoji}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.viewModalTitle}>{item.title}</Text>
+                            <CountdownTimer createdAt={item.createdAt} />
+                          </View>
                         </View>
-                      ))}
-                      {(item.comments || []).length === 0 && (
-                        <Text style={styles.noCommentsText}>아직 댓글이 없습니다.</Text>
-                      )}
-                    </View>
-                  </ScrollView>
+                        
+                        {item.photo && (
+                          <Image source={{ uri: item.photo }} style={styles.viewModalImage} resizeMode="cover" />
+                        )}
+                        
+                        <Text style={styles.viewModalDescription}>{item.content}</Text>
+                        
+                        {/* 댓글 섹션 */}
+                        <View style={styles.commentsSection}>
+                          <Text style={styles.commentsTitle}>댓글</Text>
+                          {(item.comments || []).map(comment => (
+                            <View key={comment.id} style={styles.commentItem}>
+                              <Text style={styles.commentText}>{comment.text}</Text>
+                              <Text style={styles.commentTime}>{comment.createdAt}</Text>
+                            </View>
+                          ))}
+                          {(item.comments || []).length === 0 && (
+                            <Text style={styles.noCommentsText}>아직 댓글이 없습니다.</Text>
+                          )}
+                        </View>
+                      </ScrollView>
 
-                  <View style={styles.commentInputContainer}>
-                    <TextInput
-                      style={styles.commentInput}
-                      placeholder="댓글을 입력하세요..."
-                      value={newComment}
-                      onChangeText={setNewComment}
-                    />
-                    <TouchableOpacity style={styles.commentSubmitButton} onPress={() => handleAddComment(item.id)}>
-                      <Ionicons name="send" size={16} color="white" />
-                    </TouchableOpacity>
-                  </View>
+                      <View style={styles.commentInputContainer}>
+                        <TextInput
+                          style={styles.commentInput}
+                          placeholder="댓글을 입력하세요..."
+                          value={newComment}
+                          onChangeText={setNewComment}
+                        />
+                        <TouchableOpacity style={styles.commentSubmitButton} onPress={() => handleAddComment(item.id)}>
+                          <Ionicons name="send" size={16} color="white" />
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.boardHeader}>
+                        <Text style={styles.boardEmoji}>{item.emoji}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.boardTitle}>{item.title}</Text>
+                          <Text style={styles.boardDescription}>{item.description}</Text>
+                        </View>
+                      </View>
+                      
+                      {item.photo && (
+                        <Image source={{ uri: item.photo }} style={styles.boardImage} resizeMode="cover" />
+                      )}
+                      
+                      <View style={styles.boardPostsContainer}>
+                        <FlatList
+                          data={item.boardPosts}
+                          keyExtractor={bp => bp.id}
+                          renderItem={({ item: bp }) => (
+                            <TouchableOpacity 
+                              style={styles.boardPostItem}
+                              onPress={() => {
+                                setSelectedBoardPost(bp);
+                                setBoardPostModalVisible(true);
+                              }}
+                            >
+                              <Text style={styles.boardPostTitle}>{bp.title}</Text>
+                              <Text style={styles.boardPostPreview} numberOfLines={1}>{bp.content}</Text>
+                              <Text style={styles.boardPostTime}>{new Date(bp.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                            </TouchableOpacity>
+                          )}
+                          ListEmptyComponent={<Text style={styles.noCommentsText}>아직 게시물이 없습니다.</Text>}
+                        />
+                      </View>
+
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={() => setAddBoardPostModalVisible(true)}>
+                          <Text style={styles.buttonText}>글쓰기</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
                   
                   <TouchableOpacity 
                     style={styles.closeButton} 
@@ -535,64 +627,6 @@ export default function App() {
             )}
           />
         </KeyboardAvoidingView>
-      </Modal>
-
-      {/* 스테이션 보기 모달 */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={boardModalVisible}
-        onRequestClose={() => setBoardModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalView, { height: '80%', width: '90%' }]}>
-            {selectedPost && selectedPost.type === 'board' && (
-              <>
-                <View style={styles.boardHeader}>
-                  <Text style={styles.boardEmoji}>{selectedPost.emoji}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.boardTitle}>{selectedPost.title}</Text>
-                    <Text style={styles.boardDescription}>{selectedPost.description}</Text>
-                  </View>
-                </View>
-                
-                {selectedPost.photo && (
-                  <Image source={{ uri: selectedPost.photo }} style={styles.boardImage} resizeMode="cover" />
-                )}
-                
-                <View style={styles.boardPostsContainer}>
-                  <FlatList
-                    data={selectedPost.boardPosts}
-                    keyExtractor={item => item.id}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity 
-                        style={styles.boardPostItem}
-                        onPress={() => {
-                          setSelectedBoardPost(item);
-                          setBoardPostModalVisible(true);
-                        }}
-                      >
-                        <Text style={styles.boardPostTitle}>{item.title}</Text>
-                        <Text style={styles.boardPostPreview} numberOfLines={1}>{item.content}</Text>
-                        <Text style={styles.boardPostTime}>{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-                      </TouchableOpacity>
-                    )}
-                    ListEmptyComponent={<Text style={styles.noCommentsText}>아직 게시물이 없습니다.</Text>}
-                  />
-                </View>
-
-                <View style={styles.buttonContainer}>
-                  <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setBoardModalVisible(false)}>
-                    <Text style={styles.buttonText}>닫기</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={() => setAddBoardPostModalVisible(true)}>
-                    <Text style={styles.buttonText}>글쓰기</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
       </Modal>
 
       {/* 스테이션 내 게시물 작성 모달 */}
@@ -763,6 +797,60 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA', justifyContent: 'center', alignItems: 'center' },
+  searchContainer: {
+    position: 'absolute',
+    top: 55,
+    width: '90%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    zIndex: 20,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+  },
+  searchResultsContainer: {
+    position: 'absolute',
+    top: 108,
+    width: '90%',
+    maxHeight: 220,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    zIndex: 20,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+  },
+  searchResultItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f3f5',
+  },
+  searchResultTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222',
+  },
+  searchResultType: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#6c757d',
+  },
   map: { ...StyleSheet.absoluteFillObject },
   markerContainer: {
     backgroundColor: 'transparent',
