@@ -4,7 +4,6 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import io from 'socket.io-client';
 
 import { initialPosts } from '../../dummyData';
 import { CustomMarker } from '../components/CustomMarker';
@@ -13,13 +12,12 @@ import { ViewPostModal } from '../components/modals/ViewPostModal';
 import { AddBoardPostModal } from '../components/modals/AddBoardPostModal';
 import { styles } from '../styles/globalStyles';
 import { customMapStyle } from '../styles/mapStyles';
-import { SERVER_URL, INITIAL_REGION } from '../utils/constants';
+import { INITIAL_REGION } from '../utils/constants';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function MapScreen() {
   const [myLocation, setMyLocation] = useState(null);
-  const [otherUser, setOtherUser] = useState(null);
   
   // 게시물(점) 및 게시판 관련 상태
   const [posts, setPosts] = useState(initialPosts);
@@ -42,7 +40,6 @@ export default function MapScreen() {
   const [newBoardPost, setNewBoardPost] = useState({ emoji: '📝', title: '', content: '', photo: null });
   const [targetBoardId, setTargetBoardId] = useState(null);
 
-  const socketRef = useRef(null);
   const locationSubscription = useRef(null);
   const mapRef = useRef(null);
   const mapRegionRef = useRef(INITIAL_REGION);
@@ -77,24 +74,9 @@ export default function MapScreen() {
   };
 
   useEffect(() => {
-    // 소켓 연결
-    socketRef.current = io(SERVER_URL);
-
-    socketRef.current.on('users_update', (users) => {
-      // 나를 제외한 다른 사용자 찾기 (데모용으로 1명만 있다고 가정)
-      const others = users.filter(u => u.socketId !== socketRef.current.id);
-      if (others.length > 0) {
-        const other = others[0];
-        setOtherUser(other);
-      } else {
-        setOtherUser(null);
-      }
-    });
-
     startTracking();
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
       if (locationSubscription.current) locationSubscription.current.remove();
     };
   }, []);
@@ -124,13 +106,6 @@ export default function MapScreen() {
       },
       (loc) => {
         setMyLocation(loc.coords);
-        // 서버로 내 정보 전송
-        if (socketRef.current) {
-          socketRef.current.emit('update_data', {
-            lat: loc.coords.latitude,
-            lon: loc.coords.longitude,
-          });
-        }
       }
     );
   };
@@ -311,13 +286,6 @@ export default function MapScreen() {
           <Marker
             coordinate={{ latitude: myLocation.latitude, longitude: myLocation.longitude }}
             title="내 위치"
-          />
-        )}
-        {otherUser && otherUser.lat && otherUser.lon && (
-          <Marker
-            coordinate={{ latitude: otherUser.lat, longitude: otherUser.lon }}
-            title="상대방"
-            pinColor="blue"
           />
         )}
         {filteredPosts.map(post => (
