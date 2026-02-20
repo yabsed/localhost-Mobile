@@ -823,9 +823,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 4,
+    minHeight: 42,
   },
   emojiMarker: {
     fontSize: 30,
+    lineHeight: 38,
+    includeFontPadding: true,
   },
   modalContainer: {
     flex: 1,
