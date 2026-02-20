@@ -1,12 +1,11 @@
 # DROP
 
 지도 기반 실시간 위치/게시물 공유 데모 앱입니다.  
-`React Native (Expo) + react-native-maps + Socket.IO` 조합으로 구현했습니다.
+`React Native (Expo) + react-native-maps` 조합으로 구현했습니다.
 
 ## 프로젝트 개요
 
 - 지도에서 현재 위치를 확인하고, 마커(게시물/스테이션)를 생성할 수 있습니다.
-- 같은 네트워크에 접속한 사용자 위치를 실시간으로 공유합니다.
 - 게시물 상세 보기, 댓글, 스테이션 하위 게시글(보드 글) 기능을 제공합니다.
 
 ## 코드 구조 간단 설명
@@ -16,7 +15,7 @@
 
 - `src/screens/MapScreen.js`
 	- 앱의 핵심 화면입니다.
-	- 지도 렌더링, 위치 권한/추적, 소켓 통신, 게시물 상태 관리, 모달 제어를 담당합니다.
+	- 지도 렌더링, 위치 권한/추적, 게시물 상태 관리, 모달 제어를 담당합니다.
 
 - `src/components/CustomMarker.js`
 	- 게시물 타입에 맞는 커스텀 마커 UI를 렌더링합니다.
@@ -31,11 +30,7 @@
 	- 스테이션 내부에 보드 글을 추가하는 모달입니다.
 
 - `src/utils/constants.js`
-	- 서버 URL, 지도 초기 좌표(`INITIAL_REGION`) 등 공통 상수를 관리합니다.
-
-- `server.js`
-	- Express + Socket.IO 서버입니다.
-	- 클라이언트 `update_data` 이벤트를 받아 접속자 상태를 `users_update`로 브로드캐스트합니다.
+	- 지도 초기 좌표(`INITIAL_REGION`) 등 공통 상수를 관리합니다.
 
 ## 로컬 실행
 
