@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "hello-world",
-    "slug": "hello-world",
+    "name": "DROP",
+    "slug": "drop",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
