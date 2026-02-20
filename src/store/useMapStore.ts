@@ -30,10 +30,10 @@ type MapState = {
   setAddBoardPostModalVisible: (addBoardPostModalVisible: boolean) => void;
   updateNewBoardPostField: <K extends keyof NewBoardPostForm>(field: K, value: NewBoardPostForm[K]) => void;
   setTargetBoardId: (targetBoardId: string | null) => void;
-  handleSavePost: () => void;
+  handleSavePost: (data: NewPostForm) => void;
   handleAddComment: (postId: string) => void;
   handleAddBoardPostComment: (boardId: string, boardPostId: string) => void;
-  handleSaveBoardPost: () => void;
+  handleSaveBoardPost: (data: NewBoardPostForm) => void;
   handleBackNavigation: () => boolean;
 };
 
@@ -84,16 +84,16 @@ export const useMapStore = create<MapState>((set, get) => ({
     set((state) => ({ newBoardPost: { ...state.newBoardPost, [field]: value } })),
   setTargetBoardId: (targetBoardId) => set({ targetBoardId }),
 
-  handleSavePost: () => {
-    const { newPost, posts } = get();
+  handleSavePost: (data) => {
+    const { posts } = get();
 
-    if (newPost.type === "post") {
-      if (!newPost.title || !newPost.content) {
+    if (data.type === "post") {
+      if (!data.title || !data.content) {
         Alert.alert("오류", "제목과 내용을 입력해주세요.");
         return;
       }
 
-      if (!newPost.coordinate) {
+      if (!data.coordinate) {
         Alert.alert("오류", "지도에서 위치를 먼저 선택해주세요.");
         return;
       }
@@ -101,23 +101,23 @@ export const useMapStore = create<MapState>((set, get) => ({
       const newItem: Post = {
         id: Date.now().toString(),
         type: "post",
-        coordinate: newPost.coordinate,
-        emoji: newPost.emoji,
-        title: newPost.title,
-        content: newPost.content,
-        photo: newPost.photo,
+        coordinate: data.coordinate,
+        emoji: data.emoji,
+        title: data.title,
+        content: data.content,
+        photo: data.photo,
         createdAt: Date.now(),
         comments: [],
       };
 
       set({ posts: [...posts, newItem] });
     } else {
-      if (!newPost.title || !newPost.description) {
+      if (!data.title || !data.description) {
         Alert.alert("오류", "스테이션 이름과 설명을 입력해주세요.");
         return;
       }
 
-      if (!newPost.coordinate) {
+      if (!data.coordinate) {
         Alert.alert("오류", "지도에서 위치를 먼저 선택해주세요.");
         return;
       }
@@ -125,11 +125,11 @@ export const useMapStore = create<MapState>((set, get) => ({
       const newItem: Post = {
         id: Date.now().toString(),
         type: "board",
-        coordinate: newPost.coordinate,
-        emoji: newPost.emoji,
-        title: newPost.title,
-        description: newPost.description,
-        photo: newPost.photo,
+        coordinate: data.coordinate,
+        emoji: data.emoji,
+        title: data.title,
+        description: data.description,
+        photo: data.photo,
         createdAt: Date.now(),
         boardPosts: [],
       };
@@ -193,10 +193,10 @@ export const useMapStore = create<MapState>((set, get) => ({
     set({ posts: updatedPosts, newComment: "" });
   },
 
-  handleSaveBoardPost: () => {
-    const { newBoardPost, targetBoardId, posts } = get();
+  handleSaveBoardPost: (data) => {
+    const { targetBoardId, posts } = get();
 
-    if (!newBoardPost.title || !newBoardPost.content) {
+    if (!data.title || !data.content) {
       Alert.alert("오류", "제목과 내용을 입력해주세요.");
       return;
     }
@@ -210,7 +210,7 @@ export const useMapStore = create<MapState>((set, get) => ({
       if (post.id !== targetBoardId || post.type !== "board") return post;
 
       const newBp: BoardPost = {
-        ...newBoardPost,
+        ...data,
         id: Date.now().toString(),
         createdAt: Date.now(),
         comments: [],

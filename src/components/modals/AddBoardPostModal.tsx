@@ -1,14 +1,29 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { useForm, FormProvider } from "react-hook-form";
 import { styles } from "../../styles/globalStyles";
 import { useMapStore } from "../../store/useMapStore";
 import { BaseInput } from "../form/BaseInput";
 import { DynamicForm } from "../form/DynamicForm";
 import { FORM_CONFIG } from "../form/postSchema";
+import { NewBoardPostForm } from "../../types/map";
 
 export const AddBoardPostModal = () => {
-  const { addBoardPostModalVisible, newBoardPost, updateNewBoardPostField, handleSaveBoardPost, handleBackNavigation } =
-    useMapStore();
+  const { addBoardPostModalVisible, newBoardPost, handleSaveBoardPost, handleBackNavigation } = useMapStore();
+
+  const methods = useForm<NewBoardPostForm>({
+    defaultValues: newBoardPost,
+  });
+
+  useEffect(() => {
+    if (addBoardPostModalVisible) {
+      methods.reset(newBoardPost);
+    }
+  }, [addBoardPostModalVisible, newBoardPost, methods]);
+
+  const onSubmit = (data: NewBoardPostForm) => {
+    handleSaveBoardPost(data);
+  };
 
   return (
     <Modal
@@ -21,35 +36,31 @@ export const AddBoardPostModal = () => {
         <View style={styles.modalView}>
           <Text style={styles.modalTitle}>스테이션 글쓰기</Text>
 
-          <BaseInput
-            name="emoji"
-            placeholder="이모지 (예: 📝)"
-            value={newBoardPost.emoji}
-            onChangeText={(text) => updateNewBoardPostField("emoji", text)}
-            maxLength={2}
-          />
+          <FormProvider {...methods}>
+            <BaseInput
+              name="emoji"
+              placeholder="이모지 (예: 🍔)"
+              maxLength={2}
+            />
 
-          <BaseInput
-            name="title"
-            placeholder="제목"
-            value={newBoardPost.title}
-            onChangeText={(text) => updateNewBoardPostField("title", text)}
-          />
+            <BaseInput
+              name="title"
+              placeholder="제목"
+            />
 
-          <DynamicForm 
-            config={FORM_CONFIG.boardPost} 
-            values={newBoardPost} 
-            onChange={(name, value) => updateNewBoardPostField(name as any, value)} 
-          />
+            <DynamicForm
+              config={FORM_CONFIG.boardPost}
+            />
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleBackNavigation}>
-              <Text style={styles.buttonText}>취소</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSaveBoardPost}>
-              <Text style={styles.buttonText}>저장</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleBackNavigation}>
+                <Text style={styles.buttonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={methods.handleSubmit(onSubmit)}>
+                <Text style={styles.buttonText}>저장</Text>
+              </TouchableOpacity>
+            </View>
+          </FormProvider>
         </View>
       </View>
     </Modal>

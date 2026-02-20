@@ -11,11 +11,9 @@ export interface FormFieldConfig {
 
 interface DynamicFormProps {
   config: FormFieldConfig[];
-  values: any;
-  onChange: (name: string, value: any) => void;
 }
 
-export const DynamicForm = ({ config, values, onChange }: DynamicFormProps) => {
+export const DynamicForm = ({ config }: DynamicFormProps) => {
   return (
     <>
       {config.map((field) => {
@@ -27,8 +25,6 @@ export const DynamicForm = ({ config, values, onChange }: DynamicFormProps) => {
                 name={field.name}
                 placeholder={field.placeholder}
                 maxLines={field.maxLines}
-                value={values[field.name] || ''}
-                onChangeText={(val) => onChange(field.name, val)}
               />
             );
           case 'imagePicker':
@@ -37,8 +33,6 @@ export const DynamicForm = ({ config, values, onChange }: DynamicFormProps) => {
                 key={field.name}
                 name={field.name}
                 placeholder={field.placeholder}
-                value={values[field.name] || ''}
-                onSelect={(val) => onChange(field.name, val)}
               />
             );
           default:

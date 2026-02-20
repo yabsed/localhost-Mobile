@@ -1,20 +1,23 @@
 import React from 'react';
 import { TextInput, TextInputProps } from 'react-native';
+import { useController, useFormContext } from 'react-hook-form';
 import { styles } from '../../styles/globalStyles';
 
-interface BaseInputProps extends TextInputProps {
+interface BaseInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'> {
   name: string;
-  value: string;
-  onChangeText: (text: string) => void;
 }
 
-export const BaseInput = ({ name, value, onChangeText, ...props }: BaseInputProps) => {
+export const BaseInput = ({ name, style, ...props }: BaseInputProps) => {
+  const { control } = useFormContext();
+  const { field } = useController({ name, control });
+
   return (
     <TextInput
-      style={styles.input}
+      style={[styles.input, style]}
       placeholderTextColor="#8b8b8b"
-      value={value}
-      onChangeText={onChangeText}
+      value={field.value}
+      onChangeText={field.onChange}
+      onBlur={field.onBlur}
       {...props}
     />
   );
