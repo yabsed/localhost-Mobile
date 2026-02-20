@@ -84,9 +84,16 @@ export const ViewPostModal = ({
           renderItem={({ item }) => (
             <View style={{ width: screenWidth, justifyContent: "center", alignItems: "center" }}>
               <View style={[styles.viewModalContent, { maxHeight: "80%", width: "85%" }]}>
-                <View style={styles.swipeHintContainer}>
-                  <Ionicons name="swap-horizontal" size={14} color="#8b8b8b" />
-                  <Text style={styles.swipeHintText}>스와이프</Text>
+                <View style={styles.modalTopBar}>
+                  <TouchableOpacity style={styles.backButtonInline} onPress={handleBackNavigation}>
+                    <Ionicons name="arrow-back" size={16} color="#8b8b8b" />
+                    <Text style={styles.backButtonInlineText}>뒤로가기</Text>
+                  </TouchableOpacity>
+                  <View style={styles.swipeHintContainer}>
+                    <Ionicons name="swap-horizontal" size={14} color="#8b8b8b" />
+                    <Text style={styles.swipeHintText}>스와이프</Text>
+                  </View>
+                  <View style={styles.topBarSpacer} />
                 </View>
 
                 {item.type === "post" ? (
@@ -271,9 +278,6 @@ export const ViewPostModal = ({
                   </>
                 )}
 
-                <TouchableOpacity style={styles.closeButton} onPress={handleBackNavigation}>
-                  <Text style={styles.buttonText}>닫기</Text>
-                </TouchableOpacity>
               </View>
             </View>
           )}

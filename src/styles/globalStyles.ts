@@ -297,11 +297,31 @@ export const styles = StyleSheet.create({
     paddingTop: 10,
     flexShrink: 1,
   },
+  modalTopBar: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  backButtonInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 2,
+  },
+  backButtonInlineText: {
+    fontSize: 12,
+    color: "#8b8b8b",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
   swipeHintContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+  },
+  topBarSpacer: {
+    width: 56,
   },
   swipeHintText: {
     fontSize: 12,
@@ -398,13 +418,6 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-  },
-  closeButton: {
-    backgroundColor: "#6c757d",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10,
   },
 });
 
