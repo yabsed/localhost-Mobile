@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Alert, Modal, TextInput, Button, Text, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Alert, Modal, TextInput, Button, Text, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, FlatList, Dimensions } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -38,22 +38,47 @@ const CustomMarker = ({ post, onPress }) => {
   );
 };
 
+const CountdownTimer = ({ createdAt }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = Date.now();
+      const elapsed = now - createdAt;
+      const fifteenMins = 15 * 60 * 1000;
+      const remaining = fifteenMins - (elapsed % fifteenMins);
+
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      setTimeLeft(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  return <Text style={styles.timerText}>⏳ {timeLeft} 후 리셋</Text>;
+};
+
+const screenWidth = Dimensions.get('window').width;
+
 export default function App() {
   const [myLocation, setMyLocation] = useState(null);
   const [otherUser, setOtherUser] = useState(null);
   
   // 게시물(점) 관련 상태
   const [posts, setPosts] = useState([
-    { id: 'd1', coordinate: { latitude: 37.471, longitude: 126.935 }, emoji: '🍔', title: '맛있는 버거집', content: '여기 수제버거 진짜 맛있어요!', comments: [] },
-    { id: 'd2', coordinate: { latitude: 37.469, longitude: 126.933 }, emoji: '☕', title: '조용한 카페', content: '공부하기 좋은 카페입니다.', comments: [] },
-    { id: 'd3', coordinate: { latitude: 37.472, longitude: 126.936 }, emoji: '📚', title: '스터디룸', content: '시설 깔끔하고 좋아요.', comments: [] },
-    { id: 'd4', coordinate: { latitude: 37.468, longitude: 126.934 }, emoji: '🍜', title: '가성비 라면', content: '혼밥하기 딱 좋은 곳', comments: [] },
-    { id: 'd5', coordinate: { latitude: 37.470, longitude: 126.937 }, emoji: '🌳', title: '산책로', content: '밥 먹고 걷기 좋아요.', comments: [] },
-    { id: 'd6', coordinate: { latitude: 37.473, longitude: 126.932 }, emoji: '🛒', title: '할인 마트', content: '생필품 싸게 파는 곳', comments: [] },
-    { id: 'd7', coordinate: { latitude: 37.467, longitude: 126.938 }, emoji: '🏋️', title: '헬스장', content: '기구 많고 넓어요.', comments: [] },
-    { id: 'd8', coordinate: { latitude: 37.474, longitude: 126.935 }, emoji: '🍕', title: '피자 맛집', content: '치즈가 듬뿍 들어있어요.', comments: [] },
-    { id: 'd9', coordinate: { latitude: 37.471, longitude: 126.931 }, emoji: '🍺', title: '분위기 좋은 펍', content: '맥주 한잔하기 좋은 곳', comments: [] },
-    { id: 'd10', coordinate: { latitude: 37.469, longitude: 126.939 }, emoji: '🍦', title: '아이스크림 가게', content: '디저트로 최고!', comments: [] },
+    { id: 'd1', coordinate: { latitude: 37.471, longitude: 126.935 }, emoji: '🐟', title: '붕어빵 트럭 등장!', content: '슈크림 붕어빵 3개 2천원입니다. 줄 길어요!', createdAt: Date.now() - 100000, comments: [] },
+    { id: 'd2', coordinate: { latitude: 37.469, longitude: 126.933 }, emoji: '🎸', title: '도림천 버스킹 중', content: '노래 엄청 잘 부르시네요. 구경 오세요~', createdAt: Date.now() - 300000, comments: [] },
+    { id: 'd3', coordinate: { latitude: 37.472, longitude: 126.936 }, emoji: '🌧️', title: '갑자기 소나기', content: '우산 챙기세요! 갑자기 비가 쏟아집니다.', photo: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=400', createdAt: Date.now() - 500000, comments: [] },
+    { id: 'd4', coordinate: { latitude: 37.468, longitude: 126.934 }, emoji: '🐈', title: '고양이 찾아요', content: '노란색 치즈냥이 사람 손 엄청 잘 타요.', photo: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400', createdAt: Date.now() - 700000, comments: [] },
+    { id: 'd5', coordinate: { latitude: 37.470, longitude: 126.937 }, emoji: '🚨', title: '사거리 교통사고', content: '차량 두 대 접촉사고 났어요. 차 많이 막힙니다.', photo: 'https://images.unsplash.com/photo-1508344928928-7165b67de128?w=400', createdAt: Date.now() - 200000, comments: [] },
+    { id: 'd6', coordinate: { latitude: 37.473, longitude: 126.932 }, emoji: '🎉', title: '편의점 마감세일', content: '도시락 반값 할인 중입니다. 빨리 오세요!', createdAt: Date.now() - 400000, comments: [] },
+    { id: 'd7', coordinate: { latitude: 37.467, longitude: 126.938 }, emoji: '🔥', title: '불난 것 같아요', content: '저기 연기 엄청 나는데 119 불렀나요?', photo: 'https://images.unsplash.com/photo-1495556650867-99590cea3657?w=400', createdAt: Date.now() - 800000, comments: [] },
+    { id: 'd8', coordinate: { latitude: 37.474, longitude: 126.935 }, emoji: '🎬', title: '드라마 촬영 중', content: '유명 배우 온 것 같아요. 사람 엄청 많음.', photo: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?w=400', createdAt: Date.now() - 150000, comments: [] },
+    { id: 'd9', coordinate: { latitude: 37.471, longitude: 126.931 }, emoji: '🚚', title: '이사차량 길막', content: '골목길 이사차량 때문에 못 지나갑니다. 우회하세요.', photo: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400', createdAt: Date.now() - 600000, comments: [] },
+    { id: 'd10', coordinate: { latitude: 37.469, longitude: 126.939 }, emoji: '🌈', title: '무지개 떴어요', content: '하늘 보세요! 쌍무지개 떴습니다.', createdAt: Date.now() - 50000, comments: [] },
   ]);
   const [modalVisible, setModalVisible] = useState(false);
   const [isAddingPost, setIsAddingPost] = useState(false);
@@ -143,12 +168,12 @@ export default function App() {
       Alert.alert('오류', '제목과 내용을 입력해주세요.');
       return;
     }
-    setPosts([...posts, { ...newPost, id: Date.now().toString(), comments: [] }]);
+    setPosts([...posts, { ...newPost, id: Date.now().toString(), comments: [], createdAt: Date.now() }]);
     setModalVisible(false);
     setNewPost({ coordinate: null, emoji: '📍', title: '', content: '', photo: null });
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = (postId) => {
     if (!newComment.trim()) return;
     
     const comment = {
@@ -158,9 +183,11 @@ export default function App() {
     };
 
     const updatedPosts = posts.map(post => {
-      if (post.id === selectedPost.id) {
+      if (post.id === postId) {
         const updatedPost = { ...post, comments: [...(post.comments || []), comment] };
-        setSelectedPost(updatedPost);
+        if (selectedPost && selectedPost.id === postId) {
+          setSelectedPost(updatedPost);
+        }
         return updatedPost;
       }
       return post;
@@ -174,6 +201,14 @@ export default function App() {
     setSelectedPost(post);
     setViewModalVisible(true);
   };
+
+  const onViewableItemsChanged = useRef(({ viewableItems }) => {
+    if (viewableItems.length > 0) {
+      setSelectedPost(viewableItems[0].item);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   // 심플한 지도 스타일 (구글 맵 기준)
   const customMapStyle = [
@@ -375,57 +410,71 @@ export default function App() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalContainer}
         >
-          <View style={[styles.viewModalContent, { maxHeight: '80%' }]}>
-            {selectedPost && (
-              <>
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  <View style={styles.viewModalHeader}>
-                    <Text style={styles.viewModalEmoji}>{selectedPost.emoji}</Text>
-                    <Text style={styles.viewModalTitle}>{selectedPost.title}</Text>
-                  </View>
-                  
-                  {selectedPost.photo && (
-                    <Image source={{ uri: selectedPost.photo }} style={styles.viewModalImage} resizeMode="cover" />
-                  )}
-                  
-                  <Text style={styles.viewModalDescription}>{selectedPost.content}</Text>
-                  
-                  {/* 댓글 섹션 */}
-                  <View style={styles.commentsSection}>
-                    <Text style={styles.commentsTitle}>댓글</Text>
-                    {(selectedPost.comments || []).map(comment => (
-                      <View key={comment.id} style={styles.commentItem}>
-                        <Text style={styles.commentText}>{comment.text}</Text>
-                        <Text style={styles.commentTime}>{comment.createdAt}</Text>
+          <FlatList
+            data={posts}
+            keyExtractor={item => item.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={selectedPost ? posts.findIndex(p => p.id === selectedPost.id) : 0}
+            getItemLayout={(data, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            renderItem={({ item }) => (
+              <View style={{ width: screenWidth, justifyContent: 'center', alignItems: 'center' }}>
+                <View style={[styles.viewModalContent, { maxHeight: '80%', width: '85%' }]}>
+                  <ScrollView showsVerticalScrollIndicator={false}>
+                    <View style={styles.viewModalHeader}>
+                      <Text style={styles.viewModalEmoji}>{item.emoji}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.viewModalTitle}>{item.title}</Text>
+                        <CountdownTimer createdAt={item.createdAt} />
                       </View>
-                    ))}
-                    {(selectedPost.comments || []).length === 0 && (
-                      <Text style={styles.noCommentsText}>아직 댓글이 없습니다.</Text>
+                    </View>
+                    
+                    {item.photo && (
+                      <Image source={{ uri: item.photo }} style={styles.viewModalImage} resizeMode="cover" />
                     )}
-                  </View>
-                </ScrollView>
+                    
+                    <Text style={styles.viewModalDescription}>{item.content}</Text>
+                    
+                    {/* 댓글 섹션 */}
+                    <View style={styles.commentsSection}>
+                      <Text style={styles.commentsTitle}>댓글</Text>
+                      {(item.comments || []).map(comment => (
+                        <View key={comment.id} style={styles.commentItem}>
+                          <Text style={styles.commentText}>{comment.text}</Text>
+                          <Text style={styles.commentTime}>{comment.createdAt}</Text>
+                        </View>
+                      ))}
+                      {(item.comments || []).length === 0 && (
+                        <Text style={styles.noCommentsText}>아직 댓글이 없습니다.</Text>
+                      )}
+                    </View>
+                  </ScrollView>
 
-                <View style={styles.commentInputContainer}>
-                  <TextInput
-                    style={styles.commentInput}
-                    placeholder="댓글을 입력하세요..."
-                    value={newComment}
-                    onChangeText={setNewComment}
-                  />
-                  <TouchableOpacity style={styles.commentSubmitButton} onPress={handleAddComment}>
-                    <Ionicons name="send" size={16} color="white" />
+                  <View style={styles.commentInputContainer}>
+                    <TextInput
+                      style={styles.commentInput}
+                      placeholder="댓글을 입력하세요..."
+                      value={newComment}
+                      onChangeText={setNewComment}
+                    />
+                    <TouchableOpacity style={styles.commentSubmitButton} onPress={() => handleAddComment(item.id)}>
+                      <Ionicons name="send" size={16} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={styles.closeButton} 
+                    onPress={() => setViewModalVisible(false)}
+                  >
+                    <Text style={styles.buttonText}>닫기</Text>
                   </TouchableOpacity>
                 </View>
-                
-                <TouchableOpacity 
-                  style={styles.closeButton} 
-                  onPress={() => setViewModalVisible(false)}
-                >
-                  <Text style={styles.buttonText}>닫기</Text>
-                </TouchableOpacity>
-              </>
+              </View>
             )}
-          </View>
+          />
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -574,7 +623,12 @@ const styles = StyleSheet.create({
   viewModalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    flex: 1,
+  },
+  timerText: {
+    fontSize: 12,
+    color: '#FF5A5F',
+    marginTop: 4,
+    fontWeight: 'bold',
   },
   viewModalImage: {
     width: '100%',
