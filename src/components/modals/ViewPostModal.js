@@ -3,45 +3,41 @@ import { View, Text, Modal, TextInput, TouchableOpacity, Image, ScrollView, Keyb
 import { Ionicons } from '@expo/vector-icons';
 import { CountdownTimer } from '../CountdownTimer';
 import { styles } from '../../styles/globalStyles';
+import { useMapStore } from '../../store/useMapStore';
 
 const screenWidth = Dimensions.get('window').width;
 
 export const ViewPostModal = ({
-  visible,
-  onClose,
   viewablePosts,
-  posts,
   safeInitialIndex,
   onViewableItemsChanged,
-  viewabilityConfig,
-  selectedBoardPost,
-  setSelectedBoardPost,
-  selectedBoardPostBoardId,
-  setSelectedBoardPostBoardId,
-  newComment,
-  setNewComment,
-  handleAddComment,
-  handleAddBoardPostComment,
-  setTargetBoardId,
-  setAddBoardPostModalVisible
+  viewabilityConfig
 }) => {
+  const {
+    viewModalVisible,
+    posts,
+    selectedBoardPost,
+    setSelectedBoardPost,
+    selectedBoardPostBoardId,
+    setSelectedBoardPostBoardId,
+    newComment,
+    setNewComment,
+    handleAddComment,
+    handleAddBoardPostComment,
+    setTargetBoardId,
+    setAddBoardPostModalVisible,
+    handleBackNavigation
+  } = useMapStore();
+
   const handleClose = () => {
-    if (selectedBoardPost && selectedBoardPostBoardId) {
-      setSelectedBoardPost(null);
-      setSelectedBoardPostBoardId(null);
-      setNewComment('');
-    } else {
-      onClose();
-      setSelectedBoardPost(null);
-      setSelectedBoardPostBoardId(null);
-    }
+    handleBackNavigation();
   };
 
   return (
     <Modal
       animationType="fade"
       transparent={true}
-      visible={visible}
+      visible={viewModalVisible}
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView 

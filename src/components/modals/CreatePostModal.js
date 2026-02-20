@@ -1,21 +1,37 @@
 import React from 'react';
 import { View, Text, Modal, TextInput, TouchableOpacity, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { styles } from '../../styles/globalStyles';
+import { useMapStore } from '../../store/useMapStore';
 
-export const CreatePostModal = ({
-  visible,
-  onClose,
-  newPost,
-  setNewPost,
-  onSave,
-  onPickImage
-}) => {
+export const CreatePostModal = () => {
+  const {
+    modalVisible,
+    newPost,
+    setNewPost,
+    handleSavePost,
+    handleBackNavigation
+  } = useMapStore();
+
+  const handlePickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setNewPost({ ...newPost, photo: result.assets[0].uri });
+    }
+  };
+
   return (
     <Modal
       animationType="slide"
       transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
+      visible={modalVisible}
+      onRequestClose={handleBackNavigation}
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalView}>
@@ -65,7 +81,7 @@ export const CreatePostModal = ({
                 numberOfLines={4}
               />
               
-              <TouchableOpacity style={styles.photoButton} onPress={onPickImage}>
+              <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
                 <Text style={styles.photoButtonText}>{newPost.photo ? '사진 변경' : '사진 추가'}</Text>
               </TouchableOpacity>
               {newPost.photo && (
@@ -84,7 +100,7 @@ export const CreatePostModal = ({
                 numberOfLines={4}
               />
               
-              <TouchableOpacity style={styles.photoButton} onPress={onPickImage}>
+              <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
                 <Text style={styles.photoButtonText}>{newPost.photo ? '사진 변경' : '사진 추가'}</Text>
               </TouchableOpacity>
               {newPost.photo && (
@@ -94,10 +110,10 @@ export const CreatePostModal = ({
           )}
           
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleBackNavigation}>
               <Text style={styles.buttonText}>취소</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={onSave}>
+            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSavePost}>
               <Text style={styles.buttonText}>저장</Text>
             </TouchableOpacity>
           </View>

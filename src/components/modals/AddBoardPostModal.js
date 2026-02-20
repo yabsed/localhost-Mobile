@@ -1,42 +1,17 @@
 import React from 'react';
-import { View, Text, Modal, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, Modal, TextInput, TouchableOpacity, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { styles } from '../../styles/globalStyles';
+import { useMapStore } from '../../store/useMapStore';
 
-export const AddBoardPostModal = ({
-  visible,
-  onClose,
-  newBoardPost,
-  setNewBoardPost,
-  targetBoardId,
-  setTargetBoardId,
-  posts,
-  setPosts,
-  setSelectedPost
-}) => {
-  const handleSave = () => {
-    if (!newBoardPost.title || !newBoardPost.content) {
-      Alert.alert('오류', '제목과 내용을 입력해주세요.');
-      return;
-    }
-    if (!targetBoardId) {
-      Alert.alert('오류', '게시판을 다시 선택한 뒤 글쓰기를 시도해주세요.');
-      return;
-    }
-    const updatedPosts = posts.map(p => {
-      if (p.id === targetBoardId) {
-        const newBp = { ...newBoardPost, id: Date.now().toString(), createdAt: Date.now(), comments: [] };
-        const updatedBoard = { ...p, boardPosts: [newBp, ...(p.boardPosts || [])] };
-        setSelectedPost(updatedBoard);
-        return updatedBoard;
-      }
-      return p;
-    });
-    setPosts(updatedPosts);
-    onClose();
-    setNewBoardPost({ emoji: '📝', title: '', content: '', photo: null });
-    setTargetBoardId(null);
-  };
+export const AddBoardPostModal = () => {
+  const {
+    addBoardPostModalVisible,
+    newBoardPost,
+    setNewBoardPost,
+    handleSaveBoardPost,
+    handleBackNavigation
+  } = useMapStore();
 
   const handlePickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -51,16 +26,14 @@ export const AddBoardPostModal = ({
   };
 
   const handleCancel = () => {
-    onClose();
-    setTargetBoardId(null);
-    setNewBoardPost({ emoji: '📝', title: '', content: '', photo: null });
+    handleBackNavigation();
   };
 
   return (
     <Modal
       animationType="slide"
       transparent={true}
-      visible={visible}
+      visible={addBoardPostModalVisible}
       onRequestClose={handleCancel}
     >
       <View style={styles.modalContainer}>
@@ -105,7 +78,7 @@ export const AddBoardPostModal = ({
             <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
               <Text style={styles.buttonText}>취소</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSave}>
+            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSaveBoardPost}>
               <Text style={styles.buttonText}>저장</Text>
             </TouchableOpacity>
           </View>
