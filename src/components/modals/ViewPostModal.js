@@ -103,6 +103,7 @@ export const ViewPostModal = ({
                       <TextInput
                         style={styles.commentInput}
                         placeholder="댓글을 입력하세요..."
+                        placeholderTextColor="#8b8b8b"
                         value={newComment}
                         onChangeText={setNewComment}
                       />
@@ -148,6 +149,7 @@ export const ViewPostModal = ({
                           <TextInput
                             style={styles.commentInput}
                             placeholder="댓글을 입력하세요..."
+                            placeholderTextColor="#8b8b8b"
                             value={newComment}
                             onChangeText={setNewComment}
                           />

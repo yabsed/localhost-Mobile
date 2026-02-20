@@ -39,6 +39,7 @@ export const CreatePostModal = ({
           <TextInput
             style={styles.input}
             placeholder="이모지 (예: 📍, 🍔, 📸)"
+            placeholderTextColor="#8b8b8b"
             value={newPost.emoji}
             onChangeText={(text) => setNewPost({ ...newPost, emoji: text })}
             maxLength={2}
@@ -47,6 +48,7 @@ export const CreatePostModal = ({
           <TextInput
             style={styles.input}
             placeholder={newPost.type === 'post' ? "간결한 제목" : "스테이션 이름"}
+            placeholderTextColor="#8b8b8b"
             value={newPost.title}
             onChangeText={(text) => setNewPost({ ...newPost, title: text })}
           />
@@ -56,6 +58,7 @@ export const CreatePostModal = ({
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="내용을 입력하세요"
+                placeholderTextColor="#8b8b8b"
                 value={newPost.content}
                 onChangeText={(text) => setNewPost({ ...newPost, content: text })}
                 multiline={true}
@@ -74,6 +77,7 @@ export const CreatePostModal = ({
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="스테이션 설명을 입력하세요"
+                placeholderTextColor="#8b8b8b"
                 value={newPost.description}
                 onChangeText={(text) => setNewPost({ ...newPost, description: text })}
                 multiline={true}

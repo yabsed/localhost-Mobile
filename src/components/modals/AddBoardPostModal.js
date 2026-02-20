@@ -70,6 +70,7 @@ export const AddBoardPostModal = ({
           <TextInput
             style={styles.input}
             placeholder="이모지 (예: 📝, 📣, 🍽️)"
+            placeholderTextColor="#8b8b8b"
             value={newBoardPost.emoji}
             onChangeText={(text) => setNewBoardPost({ ...newBoardPost, emoji: text })}
             maxLength={2}
@@ -78,6 +79,7 @@ export const AddBoardPostModal = ({
           <TextInput
             style={styles.input}
             placeholder="제목"
+            placeholderTextColor="#8b8b8b"
             value={newBoardPost.title}
             onChangeText={(text) => setNewBoardPost({ ...newBoardPost, title: text })}
           />
@@ -85,6 +87,7 @@ export const AddBoardPostModal = ({
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="내용을 입력하세요"
+            placeholderTextColor="#8b8b8b"
             value={newBoardPost.content}
             onChangeText={(text) => setNewBoardPost({ ...newBoardPost, content: text })}
             multiline={true}

@@ -27,6 +27,7 @@ export const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
+    color: '#212529',
   },
   map: { ...StyleSheet.absoluteFillObject },
   markerContainer: {
@@ -71,6 +72,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginBottom: 15,
+    color: '#212529',
   },
   textArea: {
     height: 100,
@@ -361,6 +363,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 8,
     marginRight: 10,
+    color: '#212529',
   },
   commentSubmitButton: {
     backgroundColor: '#007BFF',

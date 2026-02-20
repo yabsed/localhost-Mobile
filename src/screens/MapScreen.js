@@ -289,6 +289,7 @@ export default function MapScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="스팟/스테이션 검색"
+          placeholderTextColor="#8b8b8b"
           value={searchQuery}
           onChangeText={handleSearch}
         />
