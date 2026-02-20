@@ -3,6 +3,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -35,6 +36,10 @@ export const ViewPostModal = ({
   onViewableItemsChanged,
   viewabilityConfig,
 }: Props) => {
+  const postDetailScrollRef = React.useRef<ScrollView>(null);
+  const boardPostDetailScrollRef = React.useRef<ScrollView>(null);
+  const [shouldScrollToLatestComment, setShouldScrollToLatestComment] = React.useState(false);
+
   const {
     viewModalVisible,
     posts,
@@ -51,6 +56,16 @@ export const ViewPostModal = ({
     handleBackNavigation,
   } = useMapStore();
 
+  const scrollToLatestComment = () => {
+    if (!shouldScrollToLatestComment) return;
+
+    requestAnimationFrame(() => {
+      postDetailScrollRef.current?.scrollToEnd({ animated: true });
+      boardPostDetailScrollRef.current?.scrollToEnd({ animated: true });
+      setShouldScrollToLatestComment(false);
+    });
+  };
+
   return (
     <Modal animationType="fade" transparent visible={viewModalVisible} onRequestClose={handleBackNavigation}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalContainer}>
@@ -61,6 +76,7 @@ export const ViewPostModal = ({
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
           initialScrollIndex={safeInitialIndex}
           getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
           onViewableItemsChanged={onViewableItemsChanged}
@@ -75,7 +91,13 @@ export const ViewPostModal = ({
 
                 {item.type === "post" ? (
                   <>
-                    <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
+                    <ScrollView
+                      ref={postDetailScrollRef}
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="always"
+                      onContentSizeChange={scrollToLatestComment}
+                      style={{ flexShrink: 1 }}
+                    >
                       <View style={styles.viewModalHeader}>
                         <Text style={styles.viewModalEmoji}>{item.emoji}</Text>
                         <View style={{ flex: 1 }}>
@@ -108,7 +130,18 @@ export const ViewPostModal = ({
                         value={newComment}
                         onChangeText={setNewComment}
                       />
-                      <TouchableOpacity style={styles.commentSubmitButton} onPress={() => handleAddComment(item.id)}>
+                      <TouchableOpacity
+                        style={styles.commentSubmitButton}
+                        onPress={() => {
+                          if (!newComment.trim()) {
+                            Keyboard.dismiss();
+                            return;
+                          }
+                          setShouldScrollToLatestComment(true);
+                          Keyboard.dismiss();
+                          handleAddComment(item.id);
+                        }}
+                      >
                         <Ionicons name="send" size={16} color="white" />
                       </TouchableOpacity>
                     </View>
@@ -117,7 +150,13 @@ export const ViewPostModal = ({
                   <>
                     {selectedBoardPost && selectedBoardPostBoardId === item.id ? (
                       <View style={styles.inlineBoardPostContainer}>
-                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 260, flexShrink: 1 }}>
+                        <ScrollView
+                          ref={boardPostDetailScrollRef}
+                          showsVerticalScrollIndicator={false}
+                          keyboardShouldPersistTaps="always"
+                          onContentSizeChange={scrollToLatestComment}
+                          style={{ maxHeight: 260, flexShrink: 1 }}
+                        >
                           <View style={styles.viewModalHeader}>
                             <Text style={styles.viewModalEmoji}>{selectedBoardPost.emoji || "📝"}</Text>
                             <View style={{ flex: 1 }}>
@@ -156,7 +195,15 @@ export const ViewPostModal = ({
                           />
                           <TouchableOpacity
                             style={styles.commentSubmitButton}
-                            onPress={() => handleAddBoardPostComment(item.id, selectedBoardPost.id)}
+                            onPress={() => {
+                              if (!newComment.trim()) {
+                                Keyboard.dismiss();
+                                return;
+                              }
+                              setShouldScrollToLatestComment(true);
+                              Keyboard.dismiss();
+                              handleAddBoardPostComment(item.id, selectedBoardPost.id);
+                            }}
                           >
                             <Ionicons name="send" size={16} color="white" />
                           </TouchableOpacity>
@@ -175,7 +222,12 @@ export const ViewPostModal = ({
                         {item.photo && <Image source={{ uri: item.photo }} style={styles.boardImage} resizeMode="cover" />}
 
                         <View style={styles.boardPostsContainer}>
-                          <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled style={{ flexShrink: 1 }}>
+                          <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="always"
+                            nestedScrollEnabled
+                            style={{ flexShrink: 1 }}
+                          >
                             {item.boardPosts.map((bp) => (
                               <TouchableOpacity
                                 key={bp.id}
