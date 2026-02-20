@@ -234,6 +234,7 @@ export const styles = StyleSheet.create({
     minHeight: 120,
     maxHeight: 260,
     marginBottom: 15,
+    flexShrink: 1,
   },
   boardPostItem: {
     padding: 15,
@@ -270,6 +271,7 @@ export const styles = StyleSheet.create({
     width: "100%",
     marginTop: 10,
     paddingTop: 10,
+    flexShrink: 1,
   },
   swipeHintContainer: {
     flexDirection: "row",

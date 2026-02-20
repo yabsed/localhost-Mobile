@@ -1,24 +1,13 @@
 import React from "react";
-import { Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
-import * as ImagePicker from "expo-image-picker";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
 import { styles } from "../../styles/globalStyles";
 import { useMapStore } from "../../store/useMapStore";
+import { BaseInput } from "../form/BaseInput";
+import { DynamicForm } from "../form/DynamicForm";
+import { FORM_CONFIG } from "../form/postSchema";
 
 export const CreatePostModal = () => {
   const { modalVisible, newPost, updateNewPostField, handleSavePost, handleBackNavigation } = useMapStore();
-
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      updateNewPostField("photo", result.assets[0].uri);
-    }
-  };
 
   return (
     <Modal animationType="slide" transparent visible={modalVisible} onRequestClose={handleBackNavigation}>
@@ -45,56 +34,26 @@ export const CreatePostModal = () => {
             </TouchableOpacity>
           </View>
 
-          <TextInput
-            style={styles.input}
+          <BaseInput
+            name="emoji"
             placeholder="이모지 (예: 📍, 🍔)"
-            placeholderTextColor="#8b8b8b"
             value={newPost.emoji}
             onChangeText={(text) => updateNewPostField("emoji", text)}
             maxLength={2}
           />
 
-          <TextInput
-            style={styles.input}
+          <BaseInput
+            name="title"
             placeholder={newPost.type === "post" ? "제목" : "스테이션 이름"}
-            placeholderTextColor="#8b8b8b"
             value={newPost.title}
             onChangeText={(text) => updateNewPostField("title", text)}
           />
 
-          {newPost.type === "post" ? (
-            <>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="내용을 입력하세요"
-                placeholderTextColor="#8b8b8b"
-                value={newPost.content}
-                onChangeText={(text) => updateNewPostField("content", text)}
-                multiline
-                numberOfLines={4}
-              />
-              <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
-                <Text style={styles.photoButtonText}>{newPost.photo ? "사진 변경" : "사진 추가"}</Text>
-              </TouchableOpacity>
-              {newPost.photo && <Image source={{ uri: newPost.photo }} style={styles.previewImage} />}
-            </>
-          ) : (
-            <>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="스테이션 설명을 입력하세요"
-                placeholderTextColor="#8b8b8b"
-                value={newPost.description}
-                onChangeText={(text) => updateNewPostField("description", text)}
-                multiline
-                numberOfLines={4}
-              />
-              <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
-                <Text style={styles.photoButtonText}>{newPost.photo ? "사진 변경" : "사진 추가"}</Text>
-              </TouchableOpacity>
-              {newPost.photo && <Image source={{ uri: newPost.photo }} style={styles.previewImage} />}
-            </>
-          )}
+          <DynamicForm 
+            config={FORM_CONFIG[newPost.type] || []} 
+            values={newPost} 
+            onChange={(name, value) => updateNewPostField(name as any, value)} 
+          />
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleBackNavigation}>

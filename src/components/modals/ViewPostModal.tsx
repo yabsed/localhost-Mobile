@@ -75,7 +75,7 @@ export const ViewPostModal = ({
 
                 {item.type === "post" ? (
                   <>
-                    <ScrollView showsVerticalScrollIndicator={false}>
+                    <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
                       <View style={styles.viewModalHeader}>
                         <Text style={styles.viewModalEmoji}>{item.emoji}</Text>
                         <View style={{ flex: 1 }}>
@@ -117,7 +117,7 @@ export const ViewPostModal = ({
                   <>
                     {selectedBoardPost && selectedBoardPostBoardId === item.id ? (
                       <View style={styles.inlineBoardPostContainer}>
-                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 260 }}>
+                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 260, flexShrink: 1 }}>
                           <View style={styles.viewModalHeader}>
                             <Text style={styles.viewModalEmoji}>{selectedBoardPost.emoji || "📝"}</Text>
                             <View style={{ flex: 1 }}>
@@ -175,7 +175,7 @@ export const ViewPostModal = ({
                         {item.photo && <Image source={{ uri: item.photo }} style={styles.boardImage} resizeMode="cover" />}
 
                         <View style={styles.boardPostsContainer}>
-                          <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled>
+                          <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled style={{ flexShrink: 1 }}>
                             {item.boardPosts.map((bp) => (
                               <TouchableOpacity
                                 key={bp.id}
