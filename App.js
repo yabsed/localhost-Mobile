@@ -93,6 +93,7 @@ export default function App() {
   const [boardPostModalVisible, setBoardPostModalVisible] = useState(false);
   const [addBoardPostModalVisible, setAddBoardPostModalVisible] = useState(false);
   const [newBoardPost, setNewBoardPost] = useState({ title: '', content: '', photo: null });
+  const [targetBoardId, setTargetBoardId] = useState(null);
 
   const socketRef = useRef(null);
   const locationSubscription = useRef(null);
@@ -530,6 +531,7 @@ export default function App() {
         >
           <FlatList
             data={viewablePosts}
+            extraData={posts}
             keyExtractor={item => item.id}
             horizontal
             pagingEnabled
@@ -605,11 +607,13 @@ export default function App() {
                       )}
                       
                       <View style={styles.boardPostsContainer}>
-                        <FlatList
-                          data={item.boardPosts}
-                          keyExtractor={bp => bp.id}
-                          renderItem={({ item: bp }) => (
-                            <TouchableOpacity 
+                        <ScrollView
+                          showsVerticalScrollIndicator={false}
+                          nestedScrollEnabled
+                        >
+                          {(Array.isArray(item.boardPosts) ? item.boardPosts : []).map((bp) => (
+                            <TouchableOpacity
+                              key={bp.id}
                               style={styles.boardPostItem}
                               onPress={() => {
                                 setSelectedBoardPost(bp);
@@ -620,13 +624,18 @@ export default function App() {
                               <Text style={styles.boardPostPreview} numberOfLines={1}>{bp.content}</Text>
                               <Text style={styles.boardPostTime}>{new Date(bp.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
                             </TouchableOpacity>
+                          ))}
+                          {(Array.isArray(item.boardPosts) ? item.boardPosts : []).length === 0 && (
+                            <Text style={styles.noCommentsText}>아직 게시물이 없습니다.</Text>
                           )}
-                          ListEmptyComponent={<Text style={styles.noCommentsText}>아직 게시물이 없습니다.</Text>}
-                        />
+                        </ScrollView>
                       </View>
 
                       <View style={styles.buttonContainer}>
-                        <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={() => setAddBoardPostModalVisible(true)}>
+                        <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={() => {
+                          setTargetBoardId(item.id);
+                          setAddBoardPostModalVisible(true);
+                        }}>
                           <Text style={styles.buttonText}>글쓰기</Text>
                         </TouchableOpacity>
                       </View>
@@ -691,7 +700,10 @@ export default function App() {
             )}
             
             <View style={styles.buttonContainer}>
-              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setAddBoardPostModalVisible(false)}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => {
+                setAddBoardPostModalVisible(false);
+                setTargetBoardId(null);
+              }}>
                 <Text style={styles.buttonText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={() => {
@@ -699,8 +711,12 @@ export default function App() {
                   Alert.alert('오류', '제목과 내용을 입력해주세요.');
                   return;
                 }
+                if (!targetBoardId) {
+                  Alert.alert('오류', '게시판을 다시 선택한 뒤 글쓰기를 시도해주세요.');
+                  return;
+                }
                 const updatedPosts = posts.map(p => {
-                  if (p.id === selectedPost.id) {
+                  if (p.id === targetBoardId) {
                     const newBp = { ...newBoardPost, id: Date.now().toString(), createdAt: Date.now(), comments: [] };
                     const updatedBoard = { ...p, boardPosts: [newBp, ...(p.boardPosts || [])] };
                     setSelectedPost(updatedBoard);
@@ -711,6 +727,7 @@ export default function App() {
                 setPosts(updatedPosts);
                 setAddBoardPostModalVisible(false);
                 setNewBoardPost({ title: '', content: '', photo: null });
+                setTargetBoardId(null);
               }}>
                 <Text style={styles.buttonText}>저장</Text>
               </TouchableOpacity>
@@ -777,7 +794,7 @@ export default function App() {
                   };
                   const updatedPosts = posts.map(p => {
                     if (p.id === selectedPost.id) {
-                      const updatedBoardPosts = p.boardPosts.map(bp => {
+                      const updatedBoardPosts = (p.boardPosts || []).map(bp => {
                         if (bp.id === selectedBoardPost.id) {
                           const updatedBp = { ...bp, comments: [...(bp.comments || []), comment] };
                           setSelectedBoardPost(updatedBp);
@@ -1037,8 +1054,9 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   boardPostsContainer: {
-    flex: 1,
     width: '100%',
+    minHeight: 120,
+    maxHeight: 260,
     marginBottom: 15,
   },
   boardPostItem: {
