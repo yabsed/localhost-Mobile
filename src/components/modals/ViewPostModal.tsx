@@ -334,6 +334,9 @@ export const ViewPostModal = ({
                         <Ionicons name="arrow-back" size={16} color="#8b8b8b" />
                         <Text style={styles.backButtonInlineText}>뒤로가기</Text>
                       </TouchableOpacity>
+                      <View style={styles.topBarCenterHint} pointerEvents="none">
+                        <Text style={styles.swipeHintText}>⇄ 스와이프</Text>
+                      </View>
                       <View style={styles.topBarSpacer} />
                     </View>
 

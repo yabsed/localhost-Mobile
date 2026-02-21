@@ -366,6 +366,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    position: "relative",
     marginBottom: 10,
   },
   backButtonInline: {
@@ -381,6 +382,15 @@ export const styles = StyleSheet.create({
   },
   swipeHintContainer: {
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBarCenterHint: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: "center",
     justifyContent: "center",
   },
