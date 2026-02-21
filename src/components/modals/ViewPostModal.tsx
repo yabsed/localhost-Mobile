@@ -21,7 +21,7 @@ import { useMapStore } from "../../store/useMapStore";
 import { ActivityStatus, Board, Coordinate, Mission, MissionType } from "../../types/map";
 
 const screenWidth = Dimensions.get("window").width;
-const MISSION_PROXIMITY_METERS = 60;
+const MISSION_PROXIMITY_METERS = 200;
 const EARTH_RADIUS_METERS = 6371000;
 
 type Props = {
