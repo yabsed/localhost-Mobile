@@ -20,9 +20,41 @@ type MapState = {
   handleBackNavigation: () => boolean;
 };
 
+const MISSION_PROXIMITY_METERS = 30;
+const EARTH_RADIUS_METERS = 6371000;
+
+const toRadians = (degree: number): number => (degree * Math.PI) / 180;
+
+const getDistanceMeters = (from: Coordinate, to: Coordinate): number => {
+  const latitudeDelta = toRadians(to.latitude - from.latitude);
+  const longitudeDelta = toRadians(to.longitude - from.longitude);
+  const fromLatitude = toRadians(from.latitude);
+  const toLatitude = toRadians(to.latitude);
+
+  const a =
+    Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2) +
+    Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(longitudeDelta / 2) * Math.sin(longitudeDelta / 2);
+
+  return EARTH_RADIUS_METERS * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 const getCoordinateOrAlert = (coordinate: Coordinate | null): Coordinate | null => {
   if (coordinate) return coordinate;
   Alert.alert("위치 필요", "GPS 위치를 확인할 수 없어요. 잠시 후 다시 시도해주세요.");
+  return null;
+};
+
+const getCoordinateNearBoardOrAlert = (coordinate: Coordinate | null, board: Board): Coordinate | null => {
+  const currentCoordinate = getCoordinateOrAlert(coordinate);
+  if (!currentCoordinate) return null;
+
+  const distance = getDistanceMeters(currentCoordinate, board.coordinate);
+  if (distance <= MISSION_PROXIMITY_METERS) return currentCoordinate;
+
+  Alert.alert(
+    "거리 확인 필요",
+    `${board.title}에서 약 ${Math.round(distance)}m 떨어져 있어요. ${MISSION_PROXIMITY_METERS}m 이내에서 다시 시도해주세요.`,
+  );
   return null;
 };
 
@@ -40,7 +72,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   setMyActivitiesModalVisible: (myActivitiesModalVisible) => set({ myActivitiesModalVisible }),
 
   certifyQuietTimeMission: (board, mission, currentCoordinate) => {
-    const coordinate = getCoordinateOrAlert(currentCoordinate);
+    const coordinate = getCoordinateNearBoardOrAlert(currentCoordinate, board);
     if (!coordinate) return;
 
     const { participatedActivities } = get();
@@ -74,7 +106,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   },
 
   startStayMission: (board, mission, currentCoordinate) => {
-    const coordinate = getCoordinateOrAlert(currentCoordinate);
+    const coordinate = getCoordinateNearBoardOrAlert(currentCoordinate, board);
     if (!coordinate) return;
 
     const { participatedActivities } = get();
@@ -116,10 +148,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   },
 
   completeStayMission: (activityId, currentCoordinate) => {
-    const coordinate = getCoordinateOrAlert(currentCoordinate);
-    if (!coordinate) return;
-
-    const { participatedActivities } = get();
+    const { boards, participatedActivities } = get();
     const target = participatedActivities.find((activity) => activity.id === activityId);
     if (!target) {
       Alert.alert("오류", "진행 중인 체류 미션을 찾지 못했습니다.");
@@ -130,6 +159,15 @@ export const useMapStore = create<MapState>((set, get) => ({
       Alert.alert("이미 완료됨", "이미 보상을 받은 활동입니다.");
       return;
     }
+
+    const board = boards.find((item) => item.id === target.boardId);
+    if (!board) {
+      Alert.alert("오류", "활동에 연결된 게시판 정보를 찾지 못했습니다.");
+      return;
+    }
+
+    const coordinate = getCoordinateNearBoardOrAlert(currentCoordinate, board);
+    if (!coordinate) return;
 
     const requiredMs = (target.requiredMinutes ?? 0) * 60 * 1000;
     const now = Date.now();
