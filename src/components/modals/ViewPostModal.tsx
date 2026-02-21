@@ -27,7 +27,7 @@ import {
 } from "../../utils/imageCompression";
 
 const screenWidth = Dimensions.get("window").width;
-const MISSION_PROXIMITY_METERS = 14000;
+const MISSION_PROXIMITY_METERS = 200;
 const EARTH_RADIUS_METERS = 6371000;
 
 type Props = {

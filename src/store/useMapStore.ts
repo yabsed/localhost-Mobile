@@ -46,7 +46,7 @@ type MapState = {
   handleBackNavigation: () => boolean;
 };
 
-const MISSION_PROXIMITY_METERS = 14000;
+const MISSION_PROXIMITY_METERS = 200;
 const EARTH_RADIUS_METERS = 6371000;
 
 const toRadians = (degree: number): number => (degree * Math.PI) / 180;
