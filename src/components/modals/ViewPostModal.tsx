@@ -20,7 +20,9 @@ import { styles } from "../../styles/globalStyles";
 import { useMapStore } from "../../store/useMapStore";
 import { ActivityStatus, Board, Coordinate, Mission, MissionType } from "../../types/map";
 import {
+  buildCompressionSummary,
   compressImageForUpload,
+  getFileSizeBytes,
   getMissionCameraOptions,
 } from "../../utils/imageCompression";
 
@@ -103,8 +105,11 @@ export const ViewPostModal = ({
   } = useMapStore();
   const [submittingReceiptMissionId, setSubmittingReceiptMissionId] = useState<string | null>(null);
   const [submittingTreasureMissionId, setSubmittingTreasureMissionId] = useState<string | null>(null);
+  const [missionImageSummaryByMissionId, setMissionImageSummaryByMissionId] = useState<Record<string, string>>({});
 
-  const captureMissionImage = async (permissionDeniedMessage: string): Promise<string | null> => {
+  const captureMissionImage = async (
+    permissionDeniedMessage: string,
+  ): Promise<{ uri: string; summary: string } | null> => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("카메라 권한 필요", permissionDeniedMessage);
@@ -114,12 +119,21 @@ export const ViewPostModal = ({
     const result = await ImagePicker.launchCameraAsync(getMissionCameraOptions());
 
     if (result.canceled || !result.assets[0]?.uri) return null;
+    const originalSize = typeof result.assets[0].fileSize === "number"
+      ? result.assets[0].fileSize
+      : await getFileSizeBytes(result.assets[0].uri);
+
     const compressedUri = await compressImageForUpload({
       uri: result.assets[0].uri,
       width: result.assets[0].width,
       height: result.assets[0].height,
     });
-    return compressedUri;
+    const compressedSize = await getFileSizeBytes(compressedUri);
+
+    return {
+      uri: compressedUri,
+      summary: buildCompressionSummary(originalSize, compressedSize),
+    };
   };
 
   const handleReceiptMission = async (board: Board, mission: Mission) => {
@@ -138,12 +152,17 @@ export const ViewPostModal = ({
       return;
     }
 
-    const imageUri = await captureMissionImage("영수증 촬영을 위해 카메라 권한을 허용해주세요.");
-    if (!imageUri) return;
+    const capturedImage = await captureMissionImage("영수증 촬영을 위해 카메라 권한을 허용해주세요.");
+    if (!capturedImage) return;
+
+    setMissionImageSummaryByMissionId((current) => ({
+      ...current,
+      [mission.id]: capturedImage.summary,
+    }));
 
     setSubmittingReceiptMissionId(mission.id);
     try {
-      await certifyReceiptPurchaseMission(board, mission, currentCoordinate, imageUri);
+      await certifyReceiptPurchaseMission(board, mission, currentCoordinate, capturedImage.uri);
     } finally {
       setSubmittingReceiptMissionId(null);
     }
@@ -165,12 +184,17 @@ export const ViewPostModal = ({
       return;
     }
 
-    const imageUri = await captureMissionImage("보물찾기 촬영을 위해 카메라 권한을 허용해주세요.");
-    if (!imageUri) return;
+    const capturedImage = await captureMissionImage("보물찾기 촬영을 위해 카메라 권한을 허용해주세요.");
+    if (!capturedImage) return;
+
+    setMissionImageSummaryByMissionId((current) => ({
+      ...current,
+      [mission.id]: capturedImage.summary,
+    }));
 
     setSubmittingTreasureMissionId(mission.id);
     try {
-      await certifyTreasureHuntMission(board, mission, currentCoordinate, imageUri);
+      await certifyTreasureHuntMission(board, mission, currentCoordinate, capturedImage.uri);
     } finally {
       setSubmittingTreasureMissionId(null);
     }
@@ -234,12 +258,14 @@ export const ViewPostModal = ({
 
     if (mission.type === "receipt_purchase") {
       if (completedActivity) {
+        const compressionSummary = missionImageSummaryByMissionId[mission.id];
         return (
           <View style={styles.missionCompletedContainer}>
             <Text style={styles.missionCompletedText}>참여 완료 +{completedActivity.rewardCoins} 코인</Text>
             {completedActivity.receiptImageUri ? (
               <Image source={{ uri: completedActivity.receiptImageUri }} style={styles.missionReceiptPreviewImage} />
             ) : null}
+            {compressionSummary ? <Text style={styles.missionReceiptMetaText}>{compressionSummary}</Text> : null}
           </View>
         );
       }
@@ -260,12 +286,14 @@ export const ViewPostModal = ({
 
     if (mission.type === "camera_treasure_hunt") {
       if (completedActivity) {
+        const compressionSummary = missionImageSummaryByMissionId[mission.id];
         return (
           <View style={styles.missionCompletedContainer}>
             <Text style={styles.missionCompletedText}>참여 완료 +{completedActivity.rewardCoins} 코인</Text>
             {completedActivity.receiptImageUri ? (
               <Image source={{ uri: completedActivity.receiptImageUri }} style={styles.missionReceiptPreviewImage} />
             ) : null}
+            {compressionSummary ? <Text style={styles.missionReceiptMetaText}>{compressionSummary}</Text> : null}
           </View>
         );
       }

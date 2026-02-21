@@ -5,7 +5,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { useController, useFormContext } from 'react-hook-form';
 import { styles } from '../../styles/globalStyles';
 import {
+  buildCompressionSummary,
   compressImageForUpload,
+  getFileSizeBytes,
   getCameraCaptureOptions,
   getLibraryPickerOptions,
 } from '../../utils/imageCompression';
@@ -19,6 +21,7 @@ export const ImagePickerField = ({ name, placeholder = 'Add photo' }: ImagePicke
   const { control } = useFormContext();
   const { field } = useController({ name, control });
   const cameraRef = useRef<CameraView | null>(null);
+  const [compressionSummaryLabel, setCompressionSummaryLabel] = useState<string | null>(null);
   const [cameraModalVisible, setCameraModalVisible] = useState(false);
   const [facing, setFacing] = useState<'front' | 'back'>('back');
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -33,12 +36,17 @@ export const ImagePickerField = ({ name, placeholder = 'Add photo' }: ImagePicke
     const result = await ImagePicker.launchImageLibraryAsync(getLibraryPickerOptions());
 
     if (!result.canceled && result.assets[0]?.uri) {
+      const originalSize = typeof result.assets[0].fileSize === 'number'
+        ? result.assets[0].fileSize
+        : await getFileSizeBytes(result.assets[0].uri);
       const compressedUri = await compressImageForUpload({
         uri: result.assets[0].uri,
         width: result.assets[0].width,
         height: result.assets[0].height,
       });
       field.onChange(compressedUri);
+      const compressedSize = await getFileSizeBytes(compressedUri);
+      setCompressionSummaryLabel(buildCompressionSummary(originalSize, compressedSize));
     }
   };
 
@@ -62,12 +70,15 @@ export const ImagePickerField = ({ name, placeholder = 'Add photo' }: ImagePicke
     const result = await cameraRef.current.takePictureAsync(getCameraCaptureOptions());
 
     if (result?.uri) {
+      const originalSize = await getFileSizeBytes(result.uri);
       const compressedUri = await compressImageForUpload({
         uri: result.uri,
         width: result.width,
         height: result.height,
       });
       field.onChange(compressedUri);
+      const compressedSize = await getFileSizeBytes(compressedUri);
+      setCompressionSummaryLabel(buildCompressionSummary(originalSize, compressedSize));
       setCameraModalVisible(false);
     }
   };
@@ -84,6 +95,9 @@ export const ImagePickerField = ({ name, placeholder = 'Add photo' }: ImagePicke
       </View>
 
       {field.value && <Image source={{ uri: field.value }} style={styles.previewImage} />}
+      {compressionSummaryLabel ? (
+        <Text style={styles.previewMetaText}>{compressionSummaryLabel}</Text>
+      ) : null}
 
       <Modal
         visible={cameraModalVisible}

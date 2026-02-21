@@ -256,6 +256,12 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 15,
   },
+  previewMetaText: {
+    fontSize: 12,
+    color: "#5f6d85",
+    marginTop: -8,
+    marginBottom: 14,
+  },
   cameraContainer: {
     flex: 1,
     backgroundColor: "black",
@@ -731,6 +737,11 @@ export const styles = StyleSheet.create({
     height: 140,
     borderRadius: 10,
     marginTop: 8,
+  },
+  missionReceiptMetaText: {
+    fontSize: 12,
+    color: "#5f6d85",
+    marginTop: 6,
   },
   missionTreasureGuideContainer: {
     width: "100%",
