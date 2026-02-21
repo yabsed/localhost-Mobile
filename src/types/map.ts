@@ -44,6 +44,7 @@ export type ParticipatedActivity = {
   startedAt: number;
   completedAt?: number;
   requiredMinutes?: number;
+  receiptImageUri?: string;
   startCoordinate: Coordinate;
   endCoordinate?: Coordinate;
 };

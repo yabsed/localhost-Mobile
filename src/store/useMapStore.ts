@@ -214,6 +214,7 @@ export const useMapStore = create<MapState>((set, get) => ({
       status: "completed",
       startedAt: now,
       completedAt: now,
+      receiptImageUri,
       startCoordinate: coordinate,
       endCoordinate: coordinate,
     };

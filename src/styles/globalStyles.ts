@@ -620,6 +620,12 @@ export const styles = StyleSheet.create({
     color: "#5f6d85",
     marginTop: 4,
   },
+  boardActivityReceiptImage: {
+    width: "100%",
+    height: 120,
+    borderRadius: 8,
+    marginTop: 8,
+  },
   missionCard: {
     backgroundColor: "#f8f9ff",
     borderRadius: 10,
@@ -670,6 +676,15 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#0a9d58",
+  },
+  missionCompletedContainer: {
+    width: "100%",
+  },
+  missionReceiptPreviewImage: {
+    width: "100%",
+    height: 140,
+    borderRadius: 10,
+    marginTop: 8,
   },
   missionProgressContainer: {
     width: "100%",

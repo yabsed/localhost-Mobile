@@ -3,6 +3,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -21,6 +22,8 @@ import { useMapStore } from "../../store/useMapStore";
 import { ActivityStatus, Board, Coordinate, Mission, MissionType } from "../../types/map";
 
 const screenWidth = Dimensions.get("window").width;
+const MISSION_PROXIMITY_METERS = 30;
+const EARTH_RADIUS_METERS = 6371000;
 
 type Props = {
   viewableBoards: Board[];
@@ -58,6 +61,21 @@ const getMissionTypeEmoji = (missionType: MissionType): string => {
 const getActivityStatusLabel = (status: ActivityStatus): string => {
   if (status === "completed") return "완료";
   return "진행중";
+};
+
+const toRadians = (degree: number): number => (degree * Math.PI) / 180;
+
+const getDistanceMeters = (from: Coordinate, to: Coordinate): number => {
+  const latitudeDelta = toRadians(to.latitude - from.latitude);
+  const longitudeDelta = toRadians(to.longitude - from.longitude);
+  const fromLatitude = toRadians(from.latitude);
+  const toLatitude = toRadians(to.latitude);
+
+  const a =
+    Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2) +
+    Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(longitudeDelta / 2) * Math.sin(longitudeDelta / 2);
+
+  return EARTH_RADIUS_METERS * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
 export const ViewPostModal = ({
@@ -110,6 +128,19 @@ export const ViewPostModal = ({
 
   const handleReceiptMission = async (board: Board, mission: Mission) => {
     if (mission.type !== "receipt_purchase") return;
+    if (!currentCoordinate) {
+      Alert.alert("위치 필요", "GPS 위치를 확인할 수 없어요. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    const distance = getDistanceMeters(currentCoordinate, board.coordinate);
+    if (distance > MISSION_PROXIMITY_METERS) {
+      Alert.alert(
+        "거리 확인 필요",
+        `${board.title}에서 약 ${Math.round(distance)}m 떨어져 있어요. ${MISSION_PROXIMITY_METERS}m 이내에서 다시 시도해주세요.`,
+      );
+      return;
+    }
 
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
@@ -191,7 +222,14 @@ export const ViewPostModal = ({
 
     if (mission.type === "receipt_purchase") {
       if (completedActivity) {
-        return <Text style={styles.missionCompletedText}>참여 완료 +{completedActivity.rewardCoins} 코인</Text>;
+        return (
+          <View style={styles.missionCompletedContainer}>
+            <Text style={styles.missionCompletedText}>참여 완료 +{completedActivity.rewardCoins} 코인</Text>
+            {completedActivity.receiptImageUri ? (
+              <Image source={{ uri: completedActivity.receiptImageUri }} style={styles.missionReceiptPreviewImage} />
+            ) : null}
+          </View>
+        );
       }
 
       const isSubmitting = submittingReceiptMissionId === mission.id;
