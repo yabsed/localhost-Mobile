@@ -32,6 +32,21 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     color: "#212529",
   },
+  loadingOverlay: {
+    position: "absolute",
+    top: 108,
+    alignSelf: "center",
+    backgroundColor: "rgba(19, 29, 48, 0.85)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    zIndex: 20,
+  },
+  loadingOverlayText: {
+    color: "#f6f7fb",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   authInput: {
     borderWidth: 1,
     borderColor: "#d5dfef",

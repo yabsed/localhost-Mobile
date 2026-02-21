@@ -32,6 +32,9 @@ export default function MapScreen() {
 
   const {
     boards,
+    isLoadingBoards,
+    boardsLoadError,
+    loadBoards,
     selectedBoard,
     viewModalVisible,
     searchQuery,
@@ -48,6 +51,15 @@ export default function MapScreen() {
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
   const mapRef = useRef<MapView | null>(null);
   const mapRegionRef = useRef<Region>(INITIAL_REGION);
+
+  useEffect(() => {
+    void loadBoards();
+  }, [loadBoards]);
+
+  useEffect(() => {
+    if (!boardsLoadError) return;
+    Alert.alert("매장 데이터 안내", boardsLoadError);
+  }, [boardsLoadError]);
 
   useEffect(() => {
     const startTracking = async () => {
@@ -194,6 +206,11 @@ export default function MapScreen() {
           onChangeText={setSearchQuery}
         />
       </View>
+      {isLoadingBoards ? (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingOverlayText}>매장/미션 불러오는 중...</Text>
+        </View>
+      ) : null}
 
       <MapView
         ref={mapRef}

@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { styles } from "../../styles/globalStyles";
 import { useMapStore } from "../../store/useMapStore";
-import { ActivityStatus, Board, Coordinate, Mission, MissionType } from "../../types/map";
+import { ActivityStatus, Board, Coordinate, Mission, MissionType, QuietTimeDay } from "../../types/map";
 import {
   buildCompressionSummary,
   compressImageForUpload,
@@ -47,6 +47,33 @@ const missionPriorityByType: Record<MissionType, number> = {
 };
 
 const formatWon = (amount: number): string => `${amount.toLocaleString("ko-KR")}원`;
+const toKoreanDay = (day: QuietTimeDay): string => {
+  if (day === "MON") return "월";
+  if (day === "TUE") return "화";
+  if (day === "WED") return "수";
+  if (day === "THU") return "목";
+  if (day === "FRI") return "금";
+  if (day === "SAT") return "토";
+  return "일";
+};
+const toHourLabel = (hourValue: number): string => {
+  const normalized = ((hourValue % 24) + 24) % 24;
+  const hour = Math.floor(normalized);
+  const minute = Math.round((normalized - hour) * 60);
+  const minuteText = minute > 0 ? ` ${minute}분` : "";
+  const period = hour < 12 ? "오전" : "오후";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${period} ${hour12}시${minuteText}`;
+};
+const formatQuietTimeRule = (mission: Mission): string | null => {
+  if (mission.type !== "quiet_time_visit") return null;
+  if (mission.quietTimeStartHour === undefined || mission.quietTimeEndHour === undefined) return null;
+
+  const dayText = mission.quietTimeDays && mission.quietTimeDays.length > 0
+    ? `${mission.quietTimeDays.map(toKoreanDay).join("/")}`
+    : "매일";
+  return `인증 가능: ${dayText} ${toHourLabel(mission.quietTimeStartHour)} ~ ${toHourLabel(mission.quietTimeEndHour)}`;
+};
 
 const getMissionTypeText = (missionType: MissionType): string => {
   if (missionType === "quiet_time_visit") return "한산 시간 방문 인증";
@@ -370,6 +397,9 @@ export const ViewPostModal = ({
 
             <Text style={styles.missionDescription}>{mission.description}</Text>
 
+            {mission.type === "quiet_time_visit" && formatQuietTimeRule(mission) ? (
+              <Text style={styles.missionRuleText}>{formatQuietTimeRule(mission)}</Text>
+            ) : null}
             {mission.type === "stay_duration" && mission.minDurationMinutes ? (
               <Text style={styles.missionRuleText}>필수 체류 시간: {mission.minDurationMinutes}분</Text>
             ) : null}
@@ -378,19 +408,18 @@ export const ViewPostModal = ({
                 목표 스탬프: {mission.stampGoalCount}개 (하루 1회 인증)
               </Text>
             ) : null}
-            {mission.type === "receipt_purchase" &&
-            mission.receiptItemName &&
-            mission.receiptItemPrice !== undefined ? (
+            {mission.type === "receipt_purchase" && mission.receiptItemName ? (
               <Text style={styles.missionRuleText}>
-                구매 대상: {mission.receiptItemName} ({formatWon(mission.receiptItemPrice)})
+                구매 대상: {mission.receiptItemName}
+                {mission.receiptItemPrice !== undefined ? ` (${formatWon(mission.receiptItemPrice)})` : ""}
               </Text>
             ) : null}
-            {mission.type === "camera_treasure_hunt" &&
-            mission.treasureGuideText &&
-            mission.treasureGuideImageUri ? (
+            {mission.type === "camera_treasure_hunt" && mission.treasureGuideText ? (
               <View style={styles.missionTreasureGuideContainer}>
                 <Text style={styles.missionRuleText}>보물 힌트: {mission.treasureGuideText}</Text>
-                <Image source={{ uri: mission.treasureGuideImageUri }} style={styles.missionTreasureGuideImage} />
+                {mission.treasureGuideImageUri ? (
+                  <Image source={{ uri: mission.treasureGuideImageUri }} style={styles.missionTreasureGuideImage} />
+                ) : null}
               </View>
             ) : null}
 

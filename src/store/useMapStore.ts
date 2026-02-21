@@ -1,10 +1,13 @@
-﻿import { Alert } from "react-native";
+import { Alert } from "react-native";
 import { create } from "zustand";
 import { initialBoards } from "../../dummyData";
+import { fetchBoardsFromStoreMissions } from "../api/missionDefinitionApi";
 import { Board, Coordinate, GuestbookEntry, Mission, ParticipatedActivity, RepeatVisitProgress } from "../types/map";
 
 type MapState = {
   boards: Board[];
+  isLoadingBoards: boolean;
+  boardsLoadError: string | null;
   selectedBoard: Board | null;
   viewModalVisible: boolean;
   searchQuery: string;
@@ -12,6 +15,7 @@ type MapState = {
   repeatVisitProgressByMissionId: Record<string, RepeatVisitProgress>;
   guestbookEntriesByBoardId: Record<string, GuestbookEntry[]>;
   myActivitiesModalVisible: boolean;
+  loadBoards: () => Promise<void>;
   setSelectedBoard: (selectedBoard: Board | null) => void;
   setViewModalVisible: (viewModalVisible: boolean) => void;
   setSearchQuery: (searchQuery: string) => void;
@@ -43,7 +47,7 @@ type ReceiptVerificationPayload = {
   boardId: string;
   missionId: string;
   itemName: string;
-  itemPrice: number;
+  itemPrice?: number;
   coordinate: Coordinate;
   receiptImageUri: string;
   clientTimestamp: number;
@@ -52,7 +56,7 @@ type ReceiptVerificationPayload = {
 type TreasureHuntVerificationPayload = {
   boardId: string;
   missionId: string;
-  guideImageUri: string;
+  guideImageUri?: string;
   guideText: string;
   coordinate: Coordinate;
   capturedImageUri: string;
@@ -96,6 +100,11 @@ const getCoordinateNearBoardOrAlert = (coordinate: Coordinate | null, board: Boa
 
 const isInQuietTimeRange = (mission: Mission, now: Date): boolean => {
   if (mission.quietTimeStartHour === undefined || mission.quietTimeEndHour === undefined) return true;
+  if (mission.quietTimeDays && mission.quietTimeDays.length > 0) {
+    const weekdayByIndex = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+    const currentDay = weekdayByIndex[now.getDay()];
+    if (!mission.quietTimeDays.includes(currentDay)) return false;
+  }
 
   const currentHour = now.getHours() + now.getMinutes() / 60;
   const { quietTimeStartHour, quietTimeEndHour } = mission;
@@ -135,8 +144,8 @@ const verifyTreasureHuntWithMockBackend = async (
     return { verified: false, failureReason: "촬영한 이미지가 첨부되지 않았어요." };
   }
 
-  if (!payload.guideText || payload.guideText.length > 20) {
-    return { verified: false, failureReason: "보물찾기 안내 문구는 20자 이하로 제공되어야 해요." };
+  if (!payload.guideText || payload.guideText.length > 80) {
+    return { verified: false, failureReason: "보물찾기 안내 문구는 80자 이하로 제공되어야 해요." };
   }
 
   await new Promise((resolve) => setTimeout(resolve, 700));
@@ -145,6 +154,8 @@ const verifyTreasureHuntWithMockBackend = async (
 
 export const useMapStore = create<MapState>((set, get) => ({
   boards: initialBoards,
+  isLoadingBoards: false,
+  boardsLoadError: null,
   selectedBoard: null,
   viewModalVisible: false,
   searchQuery: "",
@@ -152,6 +163,41 @@ export const useMapStore = create<MapState>((set, get) => ({
   repeatVisitProgressByMissionId: {},
   guestbookEntriesByBoardId: {},
   myActivitiesModalVisible: false,
+
+  loadBoards: async () => {
+    set({ isLoadingBoards: true, boardsLoadError: null });
+
+    try {
+      const fetchedBoards = await fetchBoardsFromStoreMissions();
+      if (fetchedBoards.length === 0) {
+        set({
+          isLoadingBoards: false,
+          boardsLoadError: "등록된 매장 데이터가 없어 기본 샘플 데이터를 사용합니다.",
+          boards: initialBoards,
+        });
+        return;
+      }
+
+      set((state) => {
+        const nextSelectedBoard = state.selectedBoard
+          ? fetchedBoards.find((board) => board.id === state.selectedBoard?.id) ?? null
+          : null;
+
+        return {
+          boards: fetchedBoards,
+          selectedBoard: nextSelectedBoard,
+          isLoadingBoards: false,
+          boardsLoadError: null,
+        };
+      });
+    } catch (error) {
+      set({
+        isLoadingBoards: false,
+        boardsLoadError: error instanceof Error ? error.message : "매장 정보를 불러오지 못했습니다.",
+        boards: initialBoards,
+      });
+    }
+  },
 
   setSelectedBoard: (selectedBoard) => set({ selectedBoard }),
   setViewModalVisible: (viewModalVisible) => set({ viewModalVisible }),
@@ -202,7 +248,7 @@ export const useMapStore = create<MapState>((set, get) => ({
     const coordinate = getCoordinateNearBoardOrAlert(currentCoordinate, board);
     if (!coordinate) return;
 
-    if (!mission.receiptItemName || mission.receiptItemPrice === undefined) {
+    if (!mission.receiptItemName) {
       Alert.alert("구매 대상 없음", "판매자가 지정한 구매 상품 정보가 아직 등록되지 않았어요.");
       return;
     }
@@ -263,8 +309,8 @@ export const useMapStore = create<MapState>((set, get) => ({
     const coordinate = getCoordinateNearBoardOrAlert(currentCoordinate, board);
     if (!coordinate) return;
 
-    if (!mission.treasureGuideImageUri || !mission.treasureGuideText) {
-      Alert.alert("보물찾기 정보 없음", "가이드 사진/문구가 아직 등록되지 않았어요.");
+    if (!mission.treasureGuideText) {
+      Alert.alert("보물찾기 정보 없음", "가이드 문구가 아직 등록되지 않았어요.");
       return;
     }
 
