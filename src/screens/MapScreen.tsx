@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
-  Animated,
   BackHandler,
   Platform,
   Text,
@@ -17,6 +16,7 @@ import MapView, { Marker, Region } from "react-native-maps";
 
 import { ViewPostModal } from "../components/modals/ViewPostModal";
 import { MyActivitiesModal } from "../components/modals/MyActivitiesModal";
+import { AuthModal } from "../components/modals/AuthModal";
 import { CustomMarker } from "../components/CustomMarker";
 import { styles } from "../styles/globalStyles";
 import { customMapStyle } from "../styles/mapStyles";
@@ -27,11 +27,7 @@ import { INITIAL_REGION } from "../utils/constants";
 
 export default function MapScreen() {
   const [myLocation, setMyLocation] = useState<Location.LocationObjectCoords | null>(null);
-  const [usernameInput, setUsernameInput] = useState("");
-  const [passwordInput, setPasswordInput] = useState("");
-  const [passwordConfirmInput, setPasswordConfirmInput] = useState("");
-  const [authPanelVisible, setAuthPanelVisible] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [authModalVisible, setAuthModalVisible] = useState(false);
   const isIOS = Platform.OS === "ios";
 
   const {
@@ -46,9 +42,8 @@ export default function MapScreen() {
     setMyActivitiesModalVisible,
     handleBackNavigation,
   } = useMapStore();
-  const { token, role, username, isLoading, login, signup, logout } = useAuthStore();
+  const { token } = useAuthStore();
   const isAuthenticated = Boolean(token);
-  const authPanelTranslateX = useRef(new Animated.Value(360)).current;
 
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
   const mapRef = useRef<MapView | null>(null);
@@ -85,8 +80,8 @@ export default function MapScreen() {
     if (Platform.OS !== "android") return;
 
     const onHardwareBackPress = () => {
-      if (authPanelVisible) {
-        setAuthPanelVisible(false);
+      if (authModalVisible) {
+        setAuthModalVisible(false);
         return true;
       }
       return handleBackNavigation();
@@ -94,15 +89,7 @@ export default function MapScreen() {
     const subscription = BackHandler.addEventListener("hardwareBackPress", onHardwareBackPress);
 
     return () => subscription.remove();
-  }, [authPanelVisible, viewModalVisible, myActivitiesModalVisible, handleBackNavigation]);
-
-  useEffect(() => {
-    Animated.timing(authPanelTranslateX, {
-      toValue: authPanelVisible ? 0 : 360,
-      duration: 240,
-      useNativeDriver: true,
-    }).start();
-  }, [authPanelVisible, authPanelTranslateX]);
+  }, [authModalVisible, viewModalVisible, myActivitiesModalVisible, handleBackNavigation]);
 
   const handleMarkerPress = (board: Board) => {
     setSelectedBoard(board);
@@ -140,38 +127,10 @@ export default function MapScreen() {
   const openParticipatedStoreList = () => {
     if (!isAuthenticated) {
       Alert.alert("로그인 필요", "참여 기록은 로그인 후 확인할 수 있어요.");
+      setAuthModalVisible(true);
       return;
     }
     setMyActivitiesModalVisible(true);
-  };
-
-  const handleAuthSubmit = async () => {
-    if (authMode === "signup" && passwordInput !== passwordConfirmInput) {
-      Alert.alert("회원가입 실패", "비밀번호 확인이 일치하지 않습니다.");
-      return;
-    }
-
-    try {
-      if (authMode === "login") {
-        await login(usernameInput, passwordInput);
-      } else {
-        await signup(usernameInput, passwordInput);
-      }
-      setPasswordInput("");
-      setPasswordConfirmInput("");
-      setAuthPanelVisible(false);
-      Alert.alert(authMode === "login" ? "로그인 완료" : "회원가입 완료", "정상적으로 처리되었습니다.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "처리에 실패했습니다.";
-      Alert.alert(authMode === "login" ? "로그인 실패" : "회원가입 실패", message);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    setPasswordInput("");
-    setPasswordConfirmInput("");
-    Alert.alert("로그아웃 완료", "로그아웃되었습니다.");
   };
 
   const openBoardFromMyActivities = (boardId: string) => {
@@ -236,86 +195,6 @@ export default function MapScreen() {
         />
       </View>
 
-      <Animated.View style={[styles.authSlidePanel, { transform: [{ translateX: authPanelTranslateX }] }]}>
-        {!isAuthenticated ? (
-          <View>
-            <View style={styles.authModeTabs}>
-              <TouchableOpacity
-                style={[styles.authModeTab, authMode === "login" ? styles.authModeTabActive : null]}
-                onPress={() => setAuthMode("login")}
-              >
-                <Text style={[styles.authModeTabText, authMode === "login" ? styles.authModeTabTextActive : null]}>
-                  로그인
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.authModeTab, authMode === "signup" ? styles.authModeTabActive : null]}
-                onPress={() => setAuthMode("signup")}
-              >
-                <Text style={[styles.authModeTabText, authMode === "signup" ? styles.authModeTabTextActive : null]}>
-                  회원가입
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.authInput}
-              placeholder="아이디"
-              placeholderTextColor="#8b8b8b"
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={usernameInput}
-              onChangeText={setUsernameInput}
-            />
-            <TextInput
-              style={styles.authInput}
-              placeholder="비밀번호"
-              placeholderTextColor="#8b8b8b"
-              autoCapitalize="none"
-              autoCorrect={false}
-              secureTextEntry
-              value={passwordInput}
-              onChangeText={setPasswordInput}
-            />
-            {authMode === "signup" ? (
-              <TextInput
-                style={styles.authInput}
-                placeholder="비밀번호 확인"
-                placeholderTextColor="#8b8b8b"
-                autoCapitalize="none"
-                autoCorrect={false}
-                secureTextEntry
-                value={passwordConfirmInput}
-                onChangeText={setPasswordConfirmInput}
-              />
-            ) : null}
-            <TouchableOpacity
-              style={[styles.authSubmitButton, isLoading ? styles.authSubmitButtonDisabled : null]}
-              disabled={isLoading}
-              onPress={() => {
-                void handleAuthSubmit();
-              }}
-            >
-              <Text style={styles.authSubmitButtonText}>
-                {isLoading ? "처리 중..." : authMode === "login" ? "로그인" : "회원가입"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.authStatusCard}>
-            <View>
-              <Text style={styles.authStatusTitle}>로그인됨</Text>
-              <Text style={styles.authStatusMeta}>
-                {username ?? "사용자"} {role ? `(${role})` : ""}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.authLogoutButton} onPress={handleLogout}>
-              <Text style={styles.authLogoutButtonText}>로그아웃</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </Animated.View>
-
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -358,7 +237,7 @@ export default function MapScreen() {
         <Text style={styles.myLocationButtonText}>내 위치</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.authFloatingButton} onPress={() => setAuthPanelVisible((prev) => !prev)}>
+      <TouchableOpacity style={styles.authFloatingButton} onPress={() => setAuthModalVisible(true)}>
         <Ionicons name={isAuthenticated ? "shield-checkmark" : "log-in"} size={18} color="white" />
         <Text style={styles.authFloatingButtonText}>{isAuthenticated ? "계정" : "인증"}</Text>
       </TouchableOpacity>
@@ -377,6 +256,7 @@ export default function MapScreen() {
       />
 
       <MyActivitiesModal onSelectStore={openBoardFromMyActivities} />
+      <AuthModal visible={authModalVisible} onClose={() => setAuthModalVisible(false)} />
     </View>
   );
 }
