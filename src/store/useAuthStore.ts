@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-const API_BASE_URL = "http://3.107.199.19:8080";
+const API_BASE_URL = "http://3.107.48.162:8080";
 
 type LoginResponse = {
   token: string;

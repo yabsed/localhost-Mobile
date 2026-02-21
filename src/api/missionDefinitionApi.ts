@@ -1,6 +1,6 @@
 import { Board, Coordinate, Mission, QuietTimeDay } from "../types/map";
 
-const API_BASE_URL = "http://3.107.199.19:8080";
+const API_BASE_URL = "http://3.107.48.162:8080";
 const DEFAULT_TREASURE_GUIDE_TEXT = "정답 이미지와 같은 장면을 촬영해 인증하세요.";
 
 type BackendMissionType = "TIME_WINDOW" | "DWELL" | "RECEIPT" | "INVENTORY" | "STAMP";

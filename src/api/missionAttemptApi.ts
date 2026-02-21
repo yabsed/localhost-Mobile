@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://3.107.199.19:8080";
+const API_BASE_URL = "http://3.107.48.162:8080";
 
 type ApiErrorResponse = {
   message?: string;
