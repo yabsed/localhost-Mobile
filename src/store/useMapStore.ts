@@ -1,7 +1,7 @@
 import { Alert } from "react-native";
 import { create } from "zustand";
 import { initialBoards } from "../../dummyData";
-import { Board, Coordinate, Mission, ParticipatedActivity, RepeatVisitProgress } from "../types/map";
+import { Board, Coordinate, GuestbookEntry, Mission, ParticipatedActivity, RepeatVisitProgress } from "../types/map";
 
 type MapState = {
   boards: Board[];
@@ -10,6 +10,7 @@ type MapState = {
   searchQuery: string;
   participatedActivities: ParticipatedActivity[];
   repeatVisitProgressByMissionId: Record<string, RepeatVisitProgress>;
+  guestbookEntriesByBoardId: Record<string, GuestbookEntry[]>;
   myActivitiesModalVisible: boolean;
   setSelectedBoard: (selectedBoard: Board | null) => void;
   setViewModalVisible: (viewModalVisible: boolean) => void;
@@ -19,6 +20,7 @@ type MapState = {
   certifyRepeatVisitMission: (board: Board, mission: Mission, currentCoordinate: Coordinate | null) => void;
   startStayMission: (board: Board, mission: Mission, currentCoordinate: Coordinate | null) => void;
   completeStayMission: (activityId: string, currentCoordinate: Coordinate | null) => void;
+  addGuestbookEntry: (boardId: string, content: string) => boolean;
   handleBackNavigation: () => boolean;
 };
 
@@ -90,6 +92,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   searchQuery: "",
   participatedActivities: [],
   repeatVisitProgressByMissionId: {},
+  guestbookEntriesByBoardId: {},
   myActivitiesModalVisible: false,
 
   setSelectedBoard: (selectedBoard) => set({ selectedBoard }),
@@ -283,6 +286,35 @@ export const useMapStore = create<MapState>((set, get) => ({
 
     set({ participatedActivities: updatedActivities });
     Alert.alert("미션 완료", `${target.rewardCoins} 코인을 획득했어요.`);
+  },
+
+  addGuestbookEntry: (boardId, content) => {
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      Alert.alert("방명록 입력", "내용을 입력해 주세요.");
+      return false;
+    }
+
+    if (trimmedContent.length > 20) {
+      Alert.alert("글자 수 초과", "방명록은 20자까지 입력할 수 있어요.");
+      return false;
+    }
+
+    const now = Date.now();
+    const newEntry: GuestbookEntry = {
+      id: `guestbook-${boardId}-${now}`,
+      boardId,
+      content: trimmedContent,
+      createdAt: now,
+    };
+
+    set((state) => ({
+      guestbookEntriesByBoardId: {
+        ...state.guestbookEntriesByBoardId,
+        [boardId]: [newEntry, ...(state.guestbookEntriesByBoardId[boardId] ?? [])],
+      },
+    }));
+    return true;
   },
 
   handleBackNavigation: () => {

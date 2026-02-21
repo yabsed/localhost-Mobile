@@ -54,4 +54,11 @@ export type RepeatVisitProgress = {
   lastStampedAt?: number;
 };
 
+export type GuestbookEntry = {
+  id: string;
+  boardId: string;
+  content: string;
+  createdAt: number;
+};
+
 export type Post = Board;

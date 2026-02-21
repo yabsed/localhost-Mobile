@@ -286,6 +286,31 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
+  boardTabContainer: {
+    width: "100%",
+    flexDirection: "row",
+    backgroundColor: "#eef2fb",
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 10,
+  },
+  boardTabButton: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  boardTabButtonActive: {
+    backgroundColor: "white",
+  },
+  boardTabText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#51617d",
+  },
+  boardTabTextActive: {
+    color: "#0d6efd",
+  },
   boardImage: {
     width: "100%",
     height: 150,
@@ -464,6 +489,78 @@ export const styles = StyleSheet.create({
   },
   missionListContent: {
     paddingBottom: 8,
+  },
+  guestbookContainer: {
+    width: "100%",
+    maxHeight: 360,
+  },
+  guestbookListContainer: {
+    width: "100%",
+    maxHeight: 250,
+  },
+  guestbookListContent: {
+    paddingBottom: 8,
+  },
+  guestbookItem: {
+    backgroundColor: "#f7f9fc",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e4e9f5",
+  },
+  guestbookItemText: {
+    fontSize: 14,
+    color: "#222",
+    lineHeight: 20,
+  },
+  guestbookItemTime: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#6b7486",
+    textAlign: "right",
+  },
+  guestbookEmptyText: {
+    color: "#999",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginTop: 24,
+  },
+  guestbookInputSection: {
+    marginTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: "#eceff4",
+    paddingTop: 10,
+  },
+  guestbookInput: {
+    borderWidth: 1,
+    borderColor: "#d3dbea",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: "#212529",
+    backgroundColor: "white",
+  },
+  guestbookInputFooter: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  guestbookCounter: {
+    fontSize: 12,
+    color: "#6a7388",
+  },
+  guestbookSubmitButton: {
+    minWidth: 70,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: "#007BFF",
+    alignItems: "center",
+  },
+  guestbookSubmitButtonDisabled: {
+    backgroundColor: "#9fbde8",
   },
   boardActivitySection: {
     backgroundColor: "#f3f7ff",
