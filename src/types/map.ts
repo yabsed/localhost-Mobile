@@ -12,6 +12,8 @@ export type Mission = {
   description: string;
   rewardCoins: number;
   minDurationMinutes?: number;
+  quietTimeStartHour?: number;
+  quietTimeEndHour?: number;
 };
 
 export type Board = {

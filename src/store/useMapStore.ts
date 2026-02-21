@@ -58,6 +58,19 @@ const getCoordinateNearBoardOrAlert = (coordinate: Coordinate | null, board: Boa
   return null;
 };
 
+const isInQuietTimeRange = (mission: Mission, now: Date): boolean => {
+  if (mission.quietTimeStartHour === undefined || mission.quietTimeEndHour === undefined) return true;
+
+  const currentHour = now.getHours() + now.getMinutes() / 60;
+  const { quietTimeStartHour, quietTimeEndHour } = mission;
+
+  if (quietTimeStartHour <= quietTimeEndHour) {
+    return currentHour >= quietTimeStartHour && currentHour < quietTimeEndHour;
+  }
+
+  return currentHour >= quietTimeStartHour || currentHour < quietTimeEndHour;
+};
+
 export const useMapStore = create<MapState>((set, get) => ({
   boards: initialBoards,
   selectedBoard: null,
@@ -74,6 +87,10 @@ export const useMapStore = create<MapState>((set, get) => ({
   certifyQuietTimeMission: (board, mission, currentCoordinate) => {
     const coordinate = getCoordinateNearBoardOrAlert(currentCoordinate, board);
     if (!coordinate) return;
+    if (!isInQuietTimeRange(mission, new Date())) {
+      Alert.alert("인증 가능 시간 아님", "지금은 한산 시간대가 아니에요. 미션 시간에 다시 시도해주세요.");
+      return;
+    }
 
     const { participatedActivities } = get();
     const alreadyCompleted = participatedActivities.some(

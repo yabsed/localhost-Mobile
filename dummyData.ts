@@ -18,6 +18,42 @@ type BoardSeed = {
   stayReward: number;
 };
 
+const parseKoreanTimeTokenToHour = (token: string): number => {
+  const meridiem = token.includes("오후") ? "pm" : "am";
+  const hourMatch = token.match(/(\d+)\s*시/);
+  const minuteMatch = token.match(/(\d+)\s*분/);
+  const hour12 = hourMatch ? Number(hourMatch[1]) : 0;
+  const minutes = minuteMatch ? Number(minuteMatch[1]) : 0;
+
+  if (meridiem === "am") {
+    const normalizedHour = hour12 === 12 ? 0 : hour12;
+    return normalizedHour + minutes / 60;
+  }
+
+  const normalizedHour = hour12 === 12 ? 12 : hour12 + 12;
+  return normalizedHour + minutes / 60;
+};
+
+const parseQuietTimeRange = (label: string): { startHour: number; endHour: number } => {
+  const normalized = label.replace(/\s+/g, "");
+  const tokens = normalized
+    .split("~")
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  if (tokens.length !== 2) {
+    return { startHour: 13, endHour: 15 };
+  }
+
+  const startToken = tokens[0];
+  const endToken = /오전|오후/.test(tokens[1]) ? tokens[1] : `${startToken.includes("오후") ? "오후" : "오전"}${tokens[1]}`;
+
+  return {
+    startHour: parseKoreanTimeTokenToHour(startToken),
+    endHour: parseKoreanTimeTokenToHour(endToken),
+  };
+};
+
 const boardSeeds: BoardSeed[] = [
   {
     id: "b1",
@@ -315,7 +351,7 @@ const boardSeeds: BoardSeed[] = [
     latitudeOffset: 0.000328,
     longitudeOffset: 0.000138,
     quietTimeLabel: "오후 1시~3시",
-    stayMinutes: 15,
+    stayMinutes: 1,
     visitReward: 10,
     stayReward: 22,
   },
@@ -327,7 +363,7 @@ const boardSeeds: BoardSeed[] = [
     latitudeOffset: 0.000372,
     longitudeOffset: 0.000162,
     quietTimeLabel: "오후 2시~4시",
-    stayMinutes: 20,
+    stayMinutes: 1,
     visitReward: 11,
     stayReward: 24,
   },
@@ -339,7 +375,7 @@ const boardSeeds: BoardSeed[] = [
     latitudeOffset: 0.000286,
     longitudeOffset: 0.000094,
     quietTimeLabel: "오후 3시~5시",
-    stayMinutes: 20,
+    stayMinutes: 1,
     visitReward: 9,
     stayReward: 23,
   },
@@ -351,7 +387,7 @@ const boardSeeds: BoardSeed[] = [
     latitudeOffset: 0.000341,
     longitudeOffset: 0.000089,
     quietTimeLabel: "오전 11시~오후 1시",
-    stayMinutes: 25,
+    stayMinutes: 1,
     visitReward: 12,
     stayReward: 27,
   },
@@ -363,7 +399,7 @@ const boardSeeds: BoardSeed[] = [
     latitudeOffset: 0.000301,
     longitudeOffset: 0.000187,
     quietTimeLabel: "오후 4시~6시",
-    stayMinutes: 30,
+    stayMinutes: 1,
     visitReward: 13,
     stayReward: 30,
   },
@@ -372,6 +408,7 @@ const boardSeeds: BoardSeed[] = [
 const seongsuBoards: Board[] = boardSeeds.map((seed, index): Board => {
   const latitude = BASE_COORDINATE.latitude + seed.latitudeOffset;
   const longitude = BASE_COORDINATE.longitude + seed.longitudeOffset;
+  const quietTimeRange = parseQuietTimeRange(seed.quietTimeLabel);
 
   return {
     id: seed.id,
@@ -388,6 +425,8 @@ const seongsuBoards: Board[] = boardSeeds.map((seed, index): Board => {
         title: "한산 시간대 방문 인증",
         description: `${seed.quietTimeLabel} 방문 후 GPS 인증 시 코인 적립.`,
         rewardCoins: seed.visitReward,
+        quietTimeStartHour: quietTimeRange.startHour,
+        quietTimeEndHour: quietTimeRange.endHour,
       },
       {
         id: `${seed.id}-m2`,
@@ -417,6 +456,8 @@ const legacyBoards: Board[] = [
         title: "한산 시간대 방문 인증",
         description: "오후 2시~4시 사이 방문 후 GPS 인증하면 코인을 드려요.",
         rewardCoins: 12,
+        quietTimeStartHour: 14,
+        quietTimeEndHour: 16,
       },
       {
         id: "legacy-b1-m2",
@@ -443,6 +484,8 @@ const legacyBoards: Board[] = [
         title: "한산 시간대 방문 인증",
         description: "평일 3시 이후 매장 방문 시 GPS 인증하면 코인 지급.",
         rewardCoins: 10,
+        quietTimeStartHour: 15,
+        quietTimeEndHour: 18,
       },
       {
         id: "legacy-b2-m2",
@@ -469,6 +512,8 @@ const legacyBoards: Board[] = [
         title: "한산 시간대 방문 인증",
         description: "오전 10시~12시 사이 방문 인증 시 코인 보상.",
         rewardCoins: 9,
+        quietTimeStartHour: 10,
+        quietTimeEndHour: 12,
       },
       {
         id: "legacy-b3-m2",
@@ -495,6 +540,8 @@ const legacyBoards: Board[] = [
         title: "한산 시간대 방문 인증",
         description: "오후 4시~5시 방문 후 GPS 인증 완료 시 코인 적립.",
         rewardCoins: 11,
+        quietTimeStartHour: 16,
+        quietTimeEndHour: 17,
       },
       {
         id: "legacy-b4-m2",
