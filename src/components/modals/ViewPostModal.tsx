@@ -251,7 +251,9 @@ export const ViewPostModal = ({
 
           <TouchableOpacity
             style={[styles.button, styles.saveButton]}
-            onPress={() => certifyRepeatVisitMission(board, mission, currentCoordinate)}
+            onPress={() => {
+              void certifyRepeatVisitMission(board, mission, currentCoordinate);
+            }}
           >
             <Text style={styles.buttonText}>오늘 방문 인증하기</Text>
           </TouchableOpacity>
@@ -276,7 +278,9 @@ export const ViewPostModal = ({
       return (
         <TouchableOpacity
           style={[styles.button, styles.saveButton]}
-          onPress={() => certifyQuietTimeMission(board, mission, currentCoordinate)}
+          onPress={() => {
+            void certifyQuietTimeMission(board, mission, currentCoordinate);
+          }}
         >
           <Text style={styles.buttonText}>GPS 인증하고 보상받기</Text>
         </TouchableOpacity>
@@ -354,7 +358,9 @@ export const ViewPostModal = ({
           </Text>
           <TouchableOpacity
             style={[styles.button, styles.saveButton]}
-            onPress={() => completeStayMission(inProgressActivity.id, currentCoordinate)}
+            onPress={() => {
+              void completeStayMission(inProgressActivity.id, currentCoordinate);
+            }}
           >
             <Text style={styles.buttonText}>체류 종료하고 검증</Text>
           </TouchableOpacity>
@@ -365,7 +371,9 @@ export const ViewPostModal = ({
     return (
       <TouchableOpacity
         style={[styles.button, styles.saveButton]}
-        onPress={() => startStayMission(board, mission, currentCoordinate)}
+        onPress={() => {
+          void startStayMission(board, mission, currentCoordinate);
+        }}
       >
         <Text style={styles.buttonText}>체류 시작 (GPS 기록)</Text>
       </TouchableOpacity>
