@@ -804,6 +804,13 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#222",
   },
+  participatedStoreDescription: {
+    fontSize: 12,
+    color: "#51617d",
+    lineHeight: 17,
+    marginTop: 2,
+    marginBottom: 4,
+  },
   participatedStoreMeta: {
     fontSize: 12,
     color: "#555",
@@ -817,6 +824,55 @@ export const styles = StyleSheet.create({
   },
   participatedStoreStampWrap: {
     marginTop: 6,
+  },
+  participatedStoreActivitySection: {
+    marginTop: 8,
+    backgroundColor: "#eef3ff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#d9e4fb",
+    padding: 8,
+  },
+  participatedStoreActivitySectionTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#25406e",
+    marginBottom: 6,
+  },
+  participatedStoreActivityItem: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#dfe7f6",
+    padding: 8,
+    marginBottom: 6,
+  },
+  participatedStoreActivityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  participatedStoreActivityTitle: {
+    flex: 1,
+    marginRight: 8,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1f2b3d",
+  },
+  participatedStoreActivityStatus: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#2c5fb3",
+  },
+  participatedStoreActivityMeta: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#5f6d85",
+  },
+  participatedStoreActivityMore: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#51617d",
   },
 });
 

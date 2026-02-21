@@ -2,6 +2,7 @@ import React from "react";
 import { FlatList, Modal, Text, TouchableOpacity, View } from "react-native";
 import { styles } from "../../styles/globalStyles";
 import { useMapStore } from "../../store/useMapStore";
+import { ParticipatedActivity } from "../../types/map";
 
 type Props = {
   onSelectStore: (boardId: string) => void;
@@ -10,13 +11,25 @@ type Props = {
 type ParticipatedStoreSummary = {
   boardId: string;
   boardTitle: string;
+  boardDescription: string;
   boardEmoji: string;
   activityCount: number;
   lastActivityAt: number;
+  totalEarnedCoins: number;
+  recentActivities: ParticipatedActivity[];
   stampCurrentCount: number;
   stampGoalCount: number;
   stampCompletedRounds: number;
 };
+
+const formatActivityMeta = (activity: ParticipatedActivity): string => {
+  const timeText = new Date(activity.startedAt).toLocaleString("ko-KR");
+  const rewardText = activity.rewardCoins > 0 ? `+${activity.rewardCoins} 코인` : "스탬프 적립";
+  return `${timeText} | ${rewardText}`;
+};
+
+const getActivityStatusText = (activity: ParticipatedActivity): string =>
+  activity.status === "completed" ? "완료" : "진행중";
 
 export const MyActivitiesModal = ({ onSelectStore }: Props) => {
   const {
@@ -42,15 +55,22 @@ export const MyActivitiesModal = ({ onSelectStore }: Props) => {
       if (activity.startedAt > existing.lastActivityAt) {
         existing.lastActivityAt = activity.startedAt;
       }
+      existing.totalEarnedCoins += activity.rewardCoins;
+      if (existing.recentActivities.length < 3) {
+        existing.recentActivities.push(activity);
+      }
       return acc;
     }
 
     acc.push({
       boardId: activity.boardId,
       boardTitle: activity.boardTitle,
+      boardDescription: board?.description ?? "가게 설명이 아직 등록되지 않았습니다.",
       boardEmoji: board?.emoji ?? "📍",
       activityCount: 1,
       lastActivityAt: activity.startedAt,
+      totalEarnedCoins: activity.rewardCoins,
+      recentActivities: [activity],
       stampCurrentCount,
       stampGoalCount,
       stampCompletedRounds,
@@ -87,9 +107,11 @@ export const MyActivitiesModal = ({ onSelectStore }: Props) => {
                     <Text style={styles.participatedStoreEmoji}>{item.boardEmoji}</Text>
                     <Text style={styles.participatedStoreTitle}>{item.boardTitle}</Text>
                   </View>
+                  <Text style={styles.participatedStoreDescription}>{item.boardDescription}</Text>
                   <Text style={styles.participatedStoreMeta}>참여 활동 수: {item.activityCount}회</Text>
+                  <Text style={styles.participatedStoreMeta}>누적 보상: +{item.totalEarnedCoins} 코인</Text>
                   <Text style={styles.participatedStoreMeta}>
-                    최근 참여: {new Date(item.lastActivityAt).toLocaleString()}
+                    최근 참여: {new Date(item.lastActivityAt).toLocaleString("ko-KR")}
                   </Text>
                   {item.stampGoalCount > 0 ? (
                     <View style={styles.participatedStoreStampWrap}>
@@ -101,9 +123,29 @@ export const MyActivitiesModal = ({ onSelectStore }: Props) => {
                           />
                         ))}
                       </View>
-                      <Text style={styles.participatedStoreStampMeta}>도장 완성 {item.stampCompletedRounds}회</Text>
+                      <Text style={styles.participatedStoreStampMeta}>
+                        스탬프 {item.stampCurrentCount}/{item.stampGoalCount} | 도장 완성 {item.stampCompletedRounds}회
+                      </Text>
                     </View>
                   ) : null}
+
+                  <View style={styles.participatedStoreActivitySection}>
+                    <Text style={styles.participatedStoreActivitySectionTitle}>MY 활동 내역</Text>
+                    {item.recentActivities.map((activity) => (
+                      <View key={activity.id} style={styles.participatedStoreActivityItem}>
+                        <View style={styles.participatedStoreActivityHeader}>
+                          <Text style={styles.participatedStoreActivityTitle}>{activity.missionTitle}</Text>
+                          <Text style={styles.participatedStoreActivityStatus}>{getActivityStatusText(activity)}</Text>
+                        </View>
+                        <Text style={styles.participatedStoreActivityMeta}>{formatActivityMeta(activity)}</Text>
+                      </View>
+                    ))}
+                    {item.activityCount > item.recentActivities.length ? (
+                      <Text style={styles.participatedStoreActivityMore}>
+                        외 {item.activityCount - item.recentActivities.length}개 활동 더 있음
+                      </Text>
+                    ) : null}
+                  </View>
                 </TouchableOpacity>
               )}
             />
