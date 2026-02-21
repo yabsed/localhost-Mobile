@@ -15,6 +15,7 @@ import { INITIAL_REGION } from "../utils/constants";
 
 export default function MapScreen() {
   const [myLocation, setMyLocation] = useState<Location.LocationObjectCoords | null>(null);
+  const isIOS = Platform.OS === "ios";
 
   const {
     boards,
@@ -172,6 +173,9 @@ export default function MapScreen() {
         ref={mapRef}
         style={styles.map}
         initialRegion={INITIAL_REGION}
+        mapType={isIOS ? "mutedStandard" : "standard"}
+        showsPointsOfInterest={!isIOS}
+        showsBuildings={!isIOS}
         showsUserLocation
         showsMyLocationButton={false}
         onRegionChangeComplete={(region) => {
