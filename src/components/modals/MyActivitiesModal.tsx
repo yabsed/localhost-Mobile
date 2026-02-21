@@ -175,7 +175,10 @@ export const MyActivitiesModal = ({ onSelectStore }: Props) => {
           ) : null}
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setMyActivitiesModalVisible(false)}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton, styles.modalCloseButton]}
+              onPress={() => setMyActivitiesModalVisible(false)}
+            >
               <Text style={styles.buttonText}>닫기</Text>
             </TouchableOpacity>
           </View>

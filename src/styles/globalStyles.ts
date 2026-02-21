@@ -95,6 +95,9 @@ export const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: "#ccc",
   },
+  modalCloseButton: {
+    backgroundColor: "#8a8f99",
+  },
   saveButton: {
     backgroundColor: "#007BFF",
   },

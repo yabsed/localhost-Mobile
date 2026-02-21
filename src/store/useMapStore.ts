@@ -1,4 +1,4 @@
-import { Alert } from "react-native";
+﻿import { Alert } from "react-native";
 import { create } from "zustand";
 import { initialBoards } from "../../dummyData";
 import { Board, Coordinate, GuestbookEntry, Mission, ParticipatedActivity, RepeatVisitProgress } from "../types/map";
@@ -36,7 +36,7 @@ type MapState = {
   handleBackNavigation: () => boolean;
 };
 
-const MISSION_PROXIMITY_METERS = 30;
+const MISSION_PROXIMITY_METERS = 60;
 const EARTH_RADIUS_METERS = 6371000;
 
 type ReceiptVerificationPayload = {
