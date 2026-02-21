@@ -2,6 +2,10 @@ import { Board, Mission, QuietTimeDay } from "../types/map";
 
 const API_BASE_URL = "http://3.107.199.19:8080";
 const DEFAULT_TREASURE_GUIDE_TEXT = "정답 이미지와 같은 장면을 촬영해 인증하세요.";
+const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
+const DEEPSEEK_MODEL = "deepseek-chat";
+const DEEPSEEK_TIMEOUT_MS = 7000;
+const STORE_EMOJI_OPTIONS = ["☕", "🍽️", "🏪", "🍺", "🍜", "🥐", "💇", "🛒", "🍰", "🧺", "📍"] as const;
 
 type BackendMissionType = "TIME_WINDOW" | "DWELL" | "RECEIPT" | "INVENTORY" | "STAMP";
 
@@ -44,6 +48,18 @@ type MissionUpdateRequest = {
 type ApiErrorResponse = {
   message?: string;
   error?: string;
+};
+
+type DeepSeekMessage = {
+  content?: string;
+};
+
+type DeepSeekChoice = {
+  message?: DeepSeekMessage;
+};
+
+type DeepSeekChatCompletionResponse = {
+  choices?: DeepSeekChoice[];
 };
 
 type TimeWindowConfig = {
@@ -170,12 +186,90 @@ const toHourLabel = (value: number): string => {
   return `${period} ${hour12}시${minuteText}`;
 };
 
-const getStoreEmoji = (name: string): string => {
+const DEEPSEEK_API_KEY = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY?.trim();
+const storeEmojiCacheByName = new Map<string, string>();
+
+const getFallbackStoreEmoji = (name: string): string => {
   const normalizedName = name.toLowerCase();
   if (normalizedName.includes("카페") || normalizedName.includes("커피")) return "☕";
   if (normalizedName.includes("cu") || normalizedName.includes("gs") || normalizedName.includes("마트")) return "🏪";
   if (normalizedName.includes("식당") || normalizedName.includes("국수") || normalizedName.includes("치킨")) return "🍽️";
   return "📍";
+};
+
+const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs: number): Promise<Response> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const extractAllowedEmoji = (rawText: string): string | null => {
+  const normalized = rawText.trim();
+  if (!normalized) return null;
+
+  const matched = STORE_EMOJI_OPTIONS.find((emoji) => normalized.includes(emoji));
+  return matched ?? null;
+};
+
+const requestStoreEmojiFromDeepSeek = async (name: string): Promise<string | null> => {
+  if (!DEEPSEEK_API_KEY) return null;
+
+  const response = await fetchWithTimeout(
+    DEEPSEEK_API_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: DEEPSEEK_MODEL,
+        temperature: 0,
+        max_tokens: 8,
+        messages: [
+          {
+            role: "system",
+            content:
+              "상호명으로 업종 이모지 1개만 고르는 분류기다. 반드시 아래 목록 중 하나만 출력하라: ☕, 🍽️, 🏪, 🍺, 🍜, 🥐, 💇, 🛒, 🍰, 🧺, 📍",
+          },
+          {
+            role: "user",
+            content: `상호명: ${name}`,
+          },
+        ],
+      }),
+    },
+    DEEPSEEK_TIMEOUT_MS,
+  );
+
+  if (!response.ok) return null;
+
+  const data = (await response.json()) as DeepSeekChatCompletionResponse;
+  const content = data.choices?.[0]?.message?.content ?? "";
+  return extractAllowedEmoji(content);
+};
+
+const getStoreEmoji = async (name: string): Promise<string> => {
+  const cacheKey = name.trim().toLowerCase();
+  const cached = storeEmojiCacheByName.get(cacheKey);
+  if (cached) return cached;
+
+  const fallbackEmoji = getFallbackStoreEmoji(name);
+
+  try {
+    const deepSeekEmoji = await requestStoreEmojiFromDeepSeek(name);
+    const resolvedEmoji = deepSeekEmoji ?? fallbackEmoji;
+    storeEmojiCacheByName.set(cacheKey, resolvedEmoji);
+    return resolvedEmoji;
+  } catch {
+    storeEmojiCacheByName.set(cacheKey, fallbackEmoji);
+    return fallbackEmoji;
+  }
 };
 
 const mapMissionDefinitionToMission = (missionDefinition: MissionDefinitionResponse): Mission => {
@@ -250,7 +344,10 @@ const mapMissionDefinitionToMission = (missionDefinition: MissionDefinitionRespo
   };
 };
 
-const mapStoreToBoard = (store: StoreResponse, missionDefinitions: MissionDefinitionResponse[]): Board => {
+const mapStoreToBoard = async (
+  store: StoreResponse,
+  missionDefinitions: MissionDefinitionResponse[],
+): Promise<Board> => {
   const missions = missionDefinitions.map(mapMissionDefinitionToMission);
   const detailAddress = store.detailAddress?.trim();
   const addressLabel = store.address.trim();
@@ -263,7 +360,7 @@ const mapStoreToBoard = (store: StoreResponse, missionDefinitions: MissionDefini
       latitude: store.lat,
       longitude: store.lng,
     },
-    emoji: getStoreEmoji(store.name),
+    emoji: await getStoreEmoji(store.name),
     title: store.name,
     description: description || "가게 설명이 아직 등록되지 않았습니다.",
     createdAt: Date.now(),
@@ -343,5 +440,7 @@ export const fetchBoardsFromStoreMissions = async (): Promise<Board[]> => {
     }),
   );
 
-  return missionResults.map(({ store, missions }) => mapStoreToBoard(store, missions));
+  return Promise.all(
+    missionResults.map(async ({ store, missions }) => mapStoreToBoard(store, missions)),
+  );
 };
