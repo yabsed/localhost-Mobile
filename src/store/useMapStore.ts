@@ -201,8 +201,8 @@ const mapAttemptToParticipatedActivity = (
 const buildRepeatVisitProgress = (board: Board, mission: Mission, attempts: MissionAttemptResponse[]): RepeatVisitProgress => {
   const stampGoalCount = Math.max(mission.stampGoalCount ?? 1, 1);
   const pendingAttempts = attempts.filter((attempt) => attempt.status === "PENDING");
-  const pendingCount = pendingAttempts.length;
   const successfulAttempts = attempts.filter((attempt) => attempt.status === "SUCCESS");
+  const stampCount = pendingAttempts.length + successfulAttempts.length;
   const successCount = successfulAttempts.length;
   const rewardedCount = successfulAttempts.filter((attempt) => hasReward(attempt.rewardId)).length;
   const fallbackCompletedRounds = Math.floor(successCount / stampGoalCount);
@@ -216,7 +216,7 @@ const buildRepeatVisitProgress = (board: Board, mission: Mission, attempts: Miss
   return {
     boardId: board.id,
     missionId: mission.id,
-    currentStampCount: pendingCount,
+    currentStampCount: stampCount,
     completedRounds,
     lastStampedAt,
   };
@@ -597,7 +597,10 @@ export const useMapStore = create<MapState>((set, get) => ({
       } catch {
         updatedProgress = {
           ...previousProgress,
-          currentStampCount: attempt.status === "PENDING" ? previousProgress.currentStampCount + 1 : previousProgress.currentStampCount,
+          currentStampCount:
+            attempt.status === "PENDING" || attempt.status === "SUCCESS"
+              ? previousProgress.currentStampCount + 1
+              : previousProgress.currentStampCount,
           completedRounds:
             previousProgress.completedRounds +
             (attempt.status === "SUCCESS" && hasReward(attempt.rewardId) ? 1 : 0),
