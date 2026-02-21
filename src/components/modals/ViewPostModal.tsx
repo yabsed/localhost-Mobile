@@ -119,9 +119,8 @@ export const ViewPostModal = ({
 
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.85,
-      aspect: [4, 3],
+      allowsEditing: false,
+      quality: 1,
     });
 
     if (result.canceled || !result.assets[0]?.uri) return;
