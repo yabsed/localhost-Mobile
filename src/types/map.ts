@@ -3,7 +3,7 @@ export type Coordinate = {
   longitude: number;
 };
 
-export type MissionType = "quiet_time_visit" | "stay_duration" | "repeat_visit_stamp";
+export type MissionType = "quiet_time_visit" | "stay_duration" | "receipt_purchase" | "repeat_visit_stamp";
 
 export type Mission = {
   id: string;
@@ -14,6 +14,8 @@ export type Mission = {
   minDurationMinutes?: number;
   quietTimeStartHour?: number;
   quietTimeEndHour?: number;
+  receiptItemName?: string;
+  receiptItemPrice?: number;
   stampGoalCount?: number;
 };
 

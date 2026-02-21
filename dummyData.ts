@@ -56,6 +56,25 @@ const parseQuietTimeRange = (label: string): { startHour: number; endHour: numbe
   };
 };
 
+type ReceiptTarget = {
+  itemName: string;
+  itemPrice: number;
+};
+
+const receiptTargets: ReceiptTarget[] = [
+  { itemName: "아메리카노", itemPrice: 4500 },
+  { itemName: "크루아상", itemPrice: 4200 },
+  { itemName: "콜드브루", itemPrice: 5800 },
+  { itemName: "시저 샐러드", itemPrice: 11900 },
+  { itemName: "치즈버거 세트", itemPrice: 12900 },
+  { itemName: "핸드드립 커피", itemPrice: 6500 },
+  { itemName: "치즈 도넛", itemPrice: 3900 },
+  { itemName: "파스타 런치", itemPrice: 13800 },
+];
+
+const getReceiptTarget = (index: number): ReceiptTarget => receiptTargets[index % receiptTargets.length];
+const formatWon = (amount: number): string => `${amount.toLocaleString("ko-KR")}원`;
+
 const boardSeeds: BoardSeed[] = [
   {
     id: "b1",
@@ -411,6 +430,8 @@ const seongsuBoards: Board[] = boardSeeds.map((seed, index): Board => {
   const latitude = BASE_COORDINATE.latitude + seed.latitudeOffset;
   const longitude = BASE_COORDINATE.longitude + seed.longitudeOffset;
   const quietTimeRange = parseQuietTimeRange(seed.quietTimeLabel);
+  const receiptTarget = getReceiptTarget(index);
+  const receiptReward = Math.max(Math.round(seed.stayReward * 0.75), 16);
   const stampGoalCount = seed.stampGoalCount ?? 5;
   const stampReward = seed.stampReward ?? Math.max(seed.stayReward + 8, 30);
 
@@ -442,6 +463,15 @@ const seongsuBoards: Board[] = boardSeeds.map((seed, index): Board => {
       },
       {
         id: `${seed.id}-m3`,
+        type: "receipt_purchase",
+        title: "영수증으로 구매인증",
+        description: `판매자가 지정한 ${receiptTarget.itemName}(${formatWon(receiptTarget.itemPrice)}) 구매 영수증을 촬영해 인증하세요.`,
+        rewardCoins: receiptReward,
+        receiptItemName: receiptTarget.itemName,
+        receiptItemPrice: receiptTarget.itemPrice,
+      },
+      {
+        id: `${seed.id}-m4`,
         type: "repeat_visit_stamp",
         title: `반복 방문 스탬프 (${stampGoalCount}회)`,
         description: `하루 1회 방문 인증으로 스탬프를 모으고 ${stampGoalCount}개를 채우면 보상을 받아요.`,
@@ -481,6 +511,15 @@ const legacyBoards: Board[] = [
       },
       {
         id: "legacy-b1-m3",
+        type: "receipt_purchase",
+        title: "영수증으로 구매인증",
+        description: "판매자가 지정한 카페라떼(5,500원) 구매 영수증을 촬영해 인증하세요.",
+        rewardCoins: 22,
+        receiptItemName: "카페라떼",
+        receiptItemPrice: 5500,
+      },
+      {
+        id: "legacy-b1-m4",
         type: "repeat_visit_stamp",
         title: "반복 방문 스탬프 (5회)",
         description: "하루 1회 방문 인증으로 스탬프를 모아 5개를 채우면 보상이 지급돼요.",
@@ -517,6 +556,15 @@ const legacyBoards: Board[] = [
       },
       {
         id: "legacy-b2-m3",
+        type: "receipt_purchase",
+        title: "영수증으로 구매인증",
+        description: "판매자가 지정한 더블치즈버거 세트(12,900원) 구매 영수증을 촬영해 인증하세요.",
+        rewardCoins: 18,
+        receiptItemName: "더블치즈버거 세트",
+        receiptItemPrice: 12900,
+      },
+      {
+        id: "legacy-b2-m4",
         type: "repeat_visit_stamp",
         title: "반복 방문 스탬프 (5회)",
         description: "하루 1회 방문 인증으로 스탬프를 모아 5개를 채우면 보상이 지급돼요.",
@@ -553,6 +601,15 @@ const legacyBoards: Board[] = [
       },
       {
         id: "legacy-b3-m3",
+        type: "receipt_purchase",
+        title: "영수증으로 구매인증",
+        description: "판매자가 지정한 핸드드립 커피(6,500원) 구매 영수증을 촬영해 인증하세요.",
+        rewardCoins: 24,
+        receiptItemName: "핸드드립 커피",
+        receiptItemPrice: 6500,
+      },
+      {
+        id: "legacy-b3-m4",
         type: "repeat_visit_stamp",
         title: "반복 방문 스탬프 (5회)",
         description: "하루 1회 방문 인증으로 스탬프를 모아 5개를 채우면 보상이 지급돼요.",
@@ -589,6 +646,15 @@ const legacyBoards: Board[] = [
       },
       {
         id: "legacy-b4-m3",
+        type: "receipt_purchase",
+        title: "영수증으로 구매인증",
+        description: "판매자가 지정한 시그니처 샐러드(11,800원) 구매 영수증을 촬영해 인증하세요.",
+        rewardCoins: 20,
+        receiptItemName: "시그니처 샐러드",
+        receiptItemPrice: 11800,
+      },
+      {
+        id: "legacy-b4-m4",
         type: "repeat_visit_stamp",
         title: "반복 방문 스탬프 (5회)",
         description: "하루 1회 방문 인증으로 스탬프를 모아 5개를 채우면 보상이 지급돼요.",

@@ -17,6 +17,12 @@ type MapState = {
   setSearchQuery: (searchQuery: string) => void;
   setMyActivitiesModalVisible: (myActivitiesModalVisible: boolean) => void;
   certifyQuietTimeMission: (board: Board, mission: Mission, currentCoordinate: Coordinate | null) => void;
+  certifyReceiptPurchaseMission: (
+    board: Board,
+    mission: Mission,
+    currentCoordinate: Coordinate | null,
+    receiptImageUri: string,
+  ) => Promise<void>;
   certifyRepeatVisitMission: (board: Board, mission: Mission, currentCoordinate: Coordinate | null) => void;
   startStayMission: (board: Board, mission: Mission, currentCoordinate: Coordinate | null) => void;
   completeStayMission: (activityId: string, currentCoordinate: Coordinate | null) => void;
@@ -26,6 +32,16 @@ type MapState = {
 
 const MISSION_PROXIMITY_METERS = 30;
 const EARTH_RADIUS_METERS = 6371000;
+
+type ReceiptVerificationPayload = {
+  boardId: string;
+  missionId: string;
+  itemName: string;
+  itemPrice: number;
+  coordinate: Coordinate;
+  receiptImageUri: string;
+  clientTimestamp: number;
+};
 
 const toRadians = (degree: number): number => (degree * Math.PI) / 180;
 
@@ -85,6 +101,17 @@ const isSameLocalDay = (timeA: number, timeB: number): boolean => {
   );
 };
 
+const verifyReceiptPurchaseWithMockBackend = async (
+  payload: ReceiptVerificationPayload,
+): Promise<{ verified: boolean; failureReason?: string }> => {
+  if (!payload.receiptImageUri) {
+    return { verified: false, failureReason: "영수증 이미지가 첨부되지 않았어요." };
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  return { verified: true };
+};
+
 export const useMapStore = create<MapState>((set, get) => ({
   boards: initialBoards,
   selectedBoard: null,
@@ -136,6 +163,66 @@ export const useMapStore = create<MapState>((set, get) => ({
 
     set((state) => ({ participatedActivities: [newActivity, ...state.participatedActivities] }));
     Alert.alert("미션 완료", `${mission.rewardCoins} 코인을 획득했어요.`);
+  },
+
+  certifyReceiptPurchaseMission: async (board, mission, currentCoordinate, receiptImageUri) => {
+    if (mission.type !== "receipt_purchase") return;
+
+    const coordinate = getCoordinateNearBoardOrAlert(currentCoordinate, board);
+    if (!coordinate) return;
+
+    if (!mission.receiptItemName || mission.receiptItemPrice === undefined) {
+      Alert.alert("구매 대상 없음", "판매자가 지정한 구매 상품 정보가 아직 등록되지 않았어요.");
+      return;
+    }
+
+    const { participatedActivities } = get();
+    const alreadyCompleted = participatedActivities.some(
+      (activity) =>
+        activity.boardId === board.id && activity.missionId === mission.id && activity.status === "completed",
+    );
+    if (alreadyCompleted) {
+      Alert.alert("이미 완료됨", "이 활동은 이미 인증을 완료했습니다.");
+      return;
+    }
+
+    const clientTimestamp = Date.now();
+    const verificationResult = await verifyReceiptPurchaseWithMockBackend({
+      boardId: board.id,
+      missionId: mission.id,
+      itemName: mission.receiptItemName,
+      itemPrice: mission.receiptItemPrice,
+      coordinate,
+      receiptImageUri,
+      clientTimestamp,
+    });
+
+    if (!verificationResult.verified) {
+      Alert.alert("구매 인증 실패", verificationResult.failureReason ?? "영수증 검증에 실패했습니다.");
+      return;
+    }
+
+    const now = Date.now();
+    const newActivity: ParticipatedActivity = {
+      id: `${mission.id}-receipt-${now}`,
+      boardId: board.id,
+      boardTitle: board.title,
+      missionId: mission.id,
+      missionType: mission.type,
+      missionTitle: `${mission.title} (${mission.receiptItemName})`,
+      rewardCoins: mission.rewardCoins,
+      status: "completed",
+      startedAt: now,
+      completedAt: now,
+      startCoordinate: coordinate,
+      endCoordinate: coordinate,
+    };
+
+    set((state) => ({ participatedActivities: [newActivity, ...state.participatedActivities] }));
+    Alert.alert(
+      "구매 인증 완료",
+      `${mission.receiptItemName} 구매가 확인되어 ${mission.rewardCoins} 코인을 획득했어요.`,
+    );
   },
 
   certifyRepeatVisitMission: (board, mission, currentCoordinate) => {

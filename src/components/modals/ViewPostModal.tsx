@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Alert,
   Dimensions,
   FlatList,
   KeyboardAvoidingView,
@@ -14,6 +15,7 @@ import {
   ViewabilityConfig,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { styles } from "../../styles/globalStyles";
 import { useMapStore } from "../../store/useMapStore";
 import { ActivityStatus, Board, Coordinate, Mission, MissionType } from "../../types/map";
@@ -30,14 +32,25 @@ type Props = {
 
 type BoardTab = "missions" | "guestbook";
 
+const missionPriorityByType: Record<MissionType, number> = {
+  quiet_time_visit: 0,
+  stay_duration: 1,
+  receipt_purchase: 2,
+  repeat_visit_stamp: 3,
+};
+
+const formatWon = (amount: number): string => `${amount.toLocaleString("ko-KR")}원`;
+
 const getMissionTypeText = (missionType: MissionType): string => {
   if (missionType === "quiet_time_visit") return "한산 시간 방문 인증";
+  if (missionType === "receipt_purchase") return "영수증 구매 인증";
   if (missionType === "repeat_visit_stamp") return "반복 방문 스탬프";
   return "체류 시간 인증";
 };
 
 const getMissionTypeEmoji = (missionType: MissionType): string => {
   if (missionType === "quiet_time_visit") return "🕒";
+  if (missionType === "receipt_purchase") return "🧾";
   if (missionType === "repeat_visit_stamp") return "🎟️";
   return "⏱️";
 };
@@ -60,6 +73,7 @@ export const ViewPostModal = ({
     repeatVisitProgressByMissionId,
     guestbookEntriesByBoardId,
     certifyQuietTimeMission,
+    certifyReceiptPurchaseMission,
     certifyRepeatVisitMission,
     startStayMission,
     completeStayMission,
@@ -68,6 +82,7 @@ export const ViewPostModal = ({
   } = useMapStore();
   const [activeTabByBoardId, setActiveTabByBoardId] = useState<Record<string, BoardTab>>({});
   const [guestbookDraftByBoardId, setGuestbookDraftByBoardId] = useState<Record<string, string>>({});
+  const [submittingReceiptMissionId, setSubmittingReceiptMissionId] = useState<string | null>(null);
 
   const getBoardTab = (boardId: string): BoardTab => activeTabByBoardId[boardId] ?? "missions";
   const getGuestbookDraft = (boardId: string): string => guestbookDraftByBoardId[boardId] ?? "";
@@ -91,6 +106,32 @@ export const ViewPostModal = ({
       ...previous,
       [boardId]: "",
     }));
+  };
+
+  const handleReceiptMission = async (board: Board, mission: Mission) => {
+    if (mission.type !== "receipt_purchase") return;
+
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("카메라 권한 필요", "영수증 촬영을 위해 카메라 권한을 허용해주세요.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.85,
+      aspect: [4, 3],
+    });
+
+    if (result.canceled || !result.assets[0]?.uri) return;
+
+    setSubmittingReceiptMissionId(mission.id);
+    try {
+      await certifyReceiptPurchaseMission(board, mission, currentCoordinate, result.assets[0].uri);
+    } finally {
+      setSubmittingReceiptMissionId(null);
+    }
   };
 
   const renderMissionAction = (board: Board, mission: Mission) => {
@@ -149,6 +190,25 @@ export const ViewPostModal = ({
       );
     }
 
+    if (mission.type === "receipt_purchase") {
+      if (completedActivity) {
+        return <Text style={styles.missionCompletedText}>참여 완료 +{completedActivity.rewardCoins} 코인</Text>;
+      }
+
+      const isSubmitting = submittingReceiptMissionId === mission.id;
+      return (
+        <TouchableOpacity
+          style={[styles.button, styles.saveButton, isSubmitting ? { opacity: 0.65 } : null]}
+          disabled={isSubmitting}
+          onPress={() => {
+            void handleReceiptMission(board, mission);
+          }}
+        >
+          <Text style={styles.buttonText}>{isSubmitting ? "영수증 검증 중..." : "카메라로 영수증 촬영"}</Text>
+        </TouchableOpacity>
+      );
+    }
+
     if (completedActivity) {
       return <Text style={styles.missionCompletedText}>참여 완료 +{completedActivity.rewardCoins} 코인</Text>;
     }
@@ -186,6 +246,7 @@ export const ViewPostModal = ({
     const boardActivities = [...participatedActivities]
       .filter((activity) => activity.boardId === board.id)
       .sort((a, b) => b.startedAt - a.startedAt);
+    const orderedMissions = [...board.missions].sort((a, b) => missionPriorityByType[a.type] - missionPriorityByType[b.type]);
 
     return (
       <ScrollView
@@ -193,7 +254,7 @@ export const ViewPostModal = ({
         contentContainerStyle={styles.missionListContent}
         showsVerticalScrollIndicator={false}
       >
-        {board.missions.map((mission) => (
+        {orderedMissions.map((mission) => (
           <View key={mission.id} style={styles.missionCard}>
             <View style={styles.missionTitleRow}>
               <Text style={styles.missionEmoji}>{getMissionTypeEmoji(mission.type)}</Text>
@@ -212,6 +273,13 @@ export const ViewPostModal = ({
             {mission.type === "repeat_visit_stamp" && mission.stampGoalCount ? (
               <Text style={styles.missionRuleText}>
                 목표 스탬프: {mission.stampGoalCount}개 (하루 1회 인증)
+              </Text>
+            ) : null}
+            {mission.type === "receipt_purchase" &&
+            mission.receiptItemName &&
+            mission.receiptItemPrice !== undefined ? (
+              <Text style={styles.missionRuleText}>
+                구매 대상: {mission.receiptItemName} ({formatWon(mission.receiptItemPrice)})
               </Text>
             ) : null}
 
