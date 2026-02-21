@@ -46,7 +46,7 @@ type MapState = {
   handleBackNavigation: () => boolean;
 };
 
-const MISSION_PROXIMITY_METERS = 200;
+const MISSION_PROXIMITY_METERS = 14000;
 const EARTH_RADIUS_METERS = 6371000;
 
 const toRadians = (degree: number): number => (degree * Math.PI) / 180;
@@ -200,18 +200,15 @@ const mapAttemptToParticipatedActivity = (
 
 const buildRepeatVisitProgress = (board: Board, mission: Mission, attempts: MissionAttemptResponse[]): RepeatVisitProgress => {
   const stampGoalCount = Math.max(mission.stampGoalCount ?? 1, 1);
+  const pendingAttempts = attempts.filter((attempt) => attempt.status === "PENDING");
+  const pendingCount = pendingAttempts.length;
   const successfulAttempts = attempts.filter((attempt) => attempt.status === "SUCCESS");
   const successCount = successfulAttempts.length;
   const rewardedCount = successfulAttempts.filter((attempt) => hasReward(attempt.rewardId)).length;
   const fallbackCompletedRounds = Math.floor(successCount / stampGoalCount);
   const completedRounds = rewardedCount > 0 ? rewardedCount : fallbackCompletedRounds;
 
-  let currentStampCount = successCount - completedRounds * stampGoalCount;
-  if (currentStampCount < 0 || currentStampCount >= stampGoalCount) {
-    currentStampCount = successCount % stampGoalCount;
-  }
-
-  const lastStampedAt = successfulAttempts
+  const lastStampedAt = [...pendingAttempts, ...successfulAttempts]
     .map((attempt) => toEpochMillis(attempt.checkoutAt) ?? toEpochMillis(attempt.checkinAt))
     .filter((value): value is number => value !== undefined)
     .sort((a, b) => b - a)[0];
@@ -219,7 +216,7 @@ const buildRepeatVisitProgress = (board: Board, mission: Mission, attempts: Miss
   return {
     boardId: board.id,
     missionId: mission.id,
-    currentStampCount,
+    currentStampCount: pendingCount,
     completedRounds,
     lastStampedAt,
   };
@@ -580,48 +577,57 @@ export const useMapStore = create<MapState>((set, get) => ({
 
     try {
       const attempt = await attemptMission(missionId, {}, token);
-      if (attempt.status !== "SUCCESS") {
+      if (attempt.status !== "PENDING" && attempt.status !== "SUCCESS") {
         Alert.alert("스탬프 적립 실패", getAttemptFailureMessage(attempt, "반복 방문 스탬프 적립에 실패했습니다."));
         return;
       }
 
-      const activity = mapAttemptToParticipatedActivity(board, mission, attempt, { coordinate });
-      if (!activity) {
-        Alert.alert("스탬프 적립 실패", "스탬프 응답을 처리하지 못했습니다.");
-        return;
-      }
-
       const { repeatVisitProgressByMissionId } = get();
-      const currentProgress = repeatVisitProgressByMissionId[mission.id] ?? {
+      const previousProgress = repeatVisitProgressByMissionId[mission.id] ?? {
         boardId: board.id,
         missionId: mission.id,
         currentStampCount: 0,
         completedRounds: 0,
       };
 
-      const nextStampCount = currentProgress.currentStampCount + 1;
-      const isCardCompleted = activity.rewardCoins > 0 || nextStampCount >= stampGoalCount;
-      const updatedProgress: RepeatVisitProgress = {
-        ...currentProgress,
-        currentStampCount: isCardCompleted ? 0 : nextStampCount,
-        completedRounds: currentProgress.completedRounds + (isCardCompleted ? 1 : 0),
-        lastStampedAt: activity.startedAt,
-      };
+      let updatedProgress: RepeatVisitProgress;
+      try {
+        const attempts = await getMyMissionAttempts(missionId, token);
+        updatedProgress = buildRepeatVisitProgress(board, mission, attempts);
+      } catch {
+        updatedProgress = {
+          ...previousProgress,
+          currentStampCount: attempt.status === "PENDING" ? previousProgress.currentStampCount + 1 : previousProgress.currentStampCount,
+          completedRounds:
+            previousProgress.completedRounds +
+            (attempt.status === "SUCCESS" && hasReward(attempt.rewardId) ? 1 : 0),
+          lastStampedAt: Date.now(),
+        };
+      }
+
+      const activity = mapAttemptToParticipatedActivity(board, mission, attempt, { coordinate });
 
       set((state) => ({
         repeatVisitProgressByMissionId: {
           ...state.repeatVisitProgressByMissionId,
           [mission.id]: updatedProgress,
         },
-        participatedActivities: upsertParticipatedActivity(state.participatedActivities, activity),
+        participatedActivities: activity
+          ? upsertParticipatedActivity(state.participatedActivities, activity)
+          : state.participatedActivities,
       }));
 
+      const isCardCompleted = updatedProgress.completedRounds > previousProgress.completedRounds;
       if (isCardCompleted) {
-        Alert.alert("스탬프 카드 완성", `${activity.rewardCoins} 코인을 획득했어요.`);
+        const rewardCoins = activity?.rewardCoins ?? mission.rewardCoins;
+        Alert.alert(
+          "스탬프 카드 완성",
+          rewardCoins > 0 ? `${rewardCoins} 코인을 획득했어요.` : "스탬프 카드를 완성했어요.",
+        );
         return;
       }
 
-      Alert.alert("스탬프 적립 완료", `${nextStampCount}/${stampGoalCount}개를 적립했어요.`);
+      Alert.alert("스탬프 적립 완료", `${updatedProgress.currentStampCount}/${stampGoalCount}개를 적립했어요.`);
     } catch (error) {
       Alert.alert("스탬프 적립 실패", error instanceof Error ? error.message : "스탬프 적립 요청에 실패했습니다.");
     }
