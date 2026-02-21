@@ -9,7 +9,6 @@ import {
   Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   ViewToken,
@@ -32,8 +31,6 @@ type Props = {
   viewabilityConfig: ViewabilityConfig;
   currentCoordinate: Coordinate | null;
 };
-
-type BoardTab = "missions" | "guestbook";
 
 const missionPriorityByType: Record<MissionType, number> = {
   quiet_time_visit: 0,
@@ -92,44 +89,16 @@ export const ViewPostModal = ({
     viewModalVisible,
     participatedActivities,
     repeatVisitProgressByMissionId,
-    guestbookEntriesByBoardId,
     certifyQuietTimeMission,
     certifyReceiptPurchaseMission,
     certifyTreasureHuntMission,
     certifyRepeatVisitMission,
     startStayMission,
     completeStayMission,
-    addGuestbookEntry,
     handleBackNavigation,
   } = useMapStore();
-  const [activeTabByBoardId, setActiveTabByBoardId] = useState<Record<string, BoardTab>>({});
-  const [guestbookDraftByBoardId, setGuestbookDraftByBoardId] = useState<Record<string, string>>({});
   const [submittingReceiptMissionId, setSubmittingReceiptMissionId] = useState<string | null>(null);
   const [submittingTreasureMissionId, setSubmittingTreasureMissionId] = useState<string | null>(null);
-
-  const getBoardTab = (boardId: string): BoardTab => activeTabByBoardId[boardId] ?? "missions";
-  const getGuestbookDraft = (boardId: string): string => guestbookDraftByBoardId[boardId] ?? "";
-
-  const setBoardTab = (boardId: string, tab: BoardTab) => {
-    setActiveTabByBoardId((previous) => ({ ...previous, [boardId]: tab }));
-  };
-
-  const updateGuestbookDraft = (boardId: string, text: string) => {
-    setGuestbookDraftByBoardId((previous) => ({
-      ...previous,
-      [boardId]: text.slice(0, 20),
-    }));
-  };
-
-  const submitGuestbook = (boardId: string) => {
-    const isAdded = addGuestbookEntry(boardId, getGuestbookDraft(boardId));
-    if (!isAdded) return;
-
-    setGuestbookDraftByBoardId((previous) => ({
-      ...previous,
-      [boardId]: "",
-    }));
-  };
 
   const captureMissionImage = async (permissionDeniedMessage: string): Promise<string | null> => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -419,57 +388,6 @@ export const ViewPostModal = ({
     );
   };
 
-  const renderGuestbookTab = (board: Board) => {
-    const guestbookEntries = guestbookEntriesByBoardId[board.id] ?? [];
-    const draft = getGuestbookDraft(board.id);
-    const isSubmitDisabled = draft.trim().length === 0;
-
-    return (
-      <View style={styles.guestbookContainer}>
-        <ScrollView
-          style={styles.guestbookListContainer}
-          contentContainerStyle={styles.guestbookListContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {guestbookEntries.length === 0 ? (
-            <Text style={styles.guestbookEmptyText}>첫 방명록을 남겨보세요.</Text>
-          ) : (
-            guestbookEntries.map((entry) => (
-              <View key={entry.id} style={styles.guestbookItem}>
-                <Text style={styles.guestbookItemText}>{entry.content}</Text>
-                <Text style={styles.guestbookItemTime}>{new Date(entry.createdAt).toLocaleString()}</Text>
-              </View>
-            ))
-          )}
-        </ScrollView>
-
-        <View style={styles.guestbookInputSection}>
-          <TextInput
-            style={styles.guestbookInput}
-            value={draft}
-            onChangeText={(text) => updateGuestbookDraft(board.id, text)}
-            placeholder="방명록을 남겨주세요 (최대 20자)"
-            placeholderTextColor="#8b8b8b"
-            maxLength={20}
-          />
-          <View style={styles.guestbookInputFooter}>
-            <Text style={styles.guestbookCounter}>{draft.length}/20</Text>
-            <TouchableOpacity
-              style={[
-                styles.guestbookSubmitButton,
-                isSubmitDisabled ? styles.guestbookSubmitButtonDisabled : null,
-              ]}
-              disabled={isSubmitDisabled}
-              onPress={() => submitGuestbook(board.id)}
-            >
-              <Text style={styles.buttonText}>등록</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <Modal animationType="fade" transparent visible={viewModalVisible} onRequestClose={handleBackNavigation}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalContainer}>
@@ -488,9 +406,6 @@ export const ViewPostModal = ({
             extraData={{
               participatedActivities,
               repeatVisitProgressByMissionId,
-              guestbookEntriesByBoardId,
-              activeTabByBoardId,
-              guestbookDraftByBoardId,
             }}
             keyExtractor={(item) => item.id}
             horizontal
@@ -500,57 +415,32 @@ export const ViewPostModal = ({
             getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
-            renderItem={({ item }) => {
-              const activeTab = getBoardTab(item.id);
-
-              return (
-                <View style={{ width: screenWidth, justifyContent: "center", alignItems: "center" }}>
-                  <View style={[styles.viewModalContent, { maxHeight: "80%", width: "88%" }]}>
-                    <View style={styles.modalTopBar}>
-                      <TouchableOpacity style={styles.backButtonInline} onPress={handleBackNavigation}>
-                        <Ionicons name="arrow-back" size={16} color="#8b8b8b" />
-                        <Text style={styles.backButtonInlineText}>뒤로가기</Text>
-                      </TouchableOpacity>
-                      <View style={styles.topBarCenterHint} pointerEvents="none">
-                        <Text style={styles.swipeHintText}>⇄ 스와이프</Text>
-                      </View>
-                      <View style={styles.topBarSpacer} />
+            renderItem={({ item }) => (
+              <View style={{ width: screenWidth, justifyContent: "center", alignItems: "center" }}>
+                <View style={[styles.viewModalContent, { maxHeight: "80%", width: "88%" }]}>
+                  <View style={styles.modalTopBar}>
+                    <TouchableOpacity style={styles.backButtonInline} onPress={handleBackNavigation}>
+                      <Ionicons name="arrow-back" size={16} color="#8b8b8b" />
+                      <Text style={styles.backButtonInlineText}>뒤로가기</Text>
+                    </TouchableOpacity>
+                    <View style={styles.topBarCenterHint} pointerEvents="none">
+                      <Text style={styles.swipeHintText}>⇄ 스와이프</Text>
                     </View>
-
-                    <View style={styles.boardHeader}>
-                      <Text style={styles.boardEmoji}>{item.emoji}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.boardTitle}>{item.title}</Text>
-                        <Text style={styles.boardDescription}>{item.description}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.boardTabContainer}>
-                      <TouchableOpacity
-                        style={[styles.boardTabButton, activeTab === "missions" ? styles.boardTabButtonActive : null]}
-                        onPress={() => setBoardTab(item.id, "missions")}
-                      >
-                        <Text style={[styles.boardTabText, activeTab === "missions" ? styles.boardTabTextActive : null]}>
-                          미션
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.boardTabButton, activeTab === "guestbook" ? styles.boardTabButtonActive : null]}
-                        onPress={() => setBoardTab(item.id, "guestbook")}
-                      >
-                        <Text
-                          style={[styles.boardTabText, activeTab === "guestbook" ? styles.boardTabTextActive : null]}
-                        >
-                          방명록
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {activeTab === "missions" ? renderMissionTab(item) : renderGuestbookTab(item)}
+                    <View style={styles.topBarSpacer} />
                   </View>
+
+                  <View style={styles.boardHeader}>
+                    <Text style={styles.boardEmoji}>{item.emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.boardTitle}>{item.title}</Text>
+                      <Text style={styles.boardDescription}>{item.description}</Text>
+                    </View>
+                  </View>
+
+                  {renderMissionTab(item)}
                 </View>
-              );
-            }}
+              </View>
+            )}
           />
         )}
       </KeyboardAvoidingView>
