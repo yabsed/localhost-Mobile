@@ -3,61 +3,44 @@ export type Coordinate = {
   longitude: number;
 };
 
-export type CommentItem = {
+export type MissionType = "quiet_time_visit" | "stay_duration";
+
+export type Mission = {
   id: string;
-  text: string;
-  createdAt: string;
+  type: MissionType;
+  title: string;
+  description: string;
+  rewardCoins: number;
+  minDurationMinutes?: number;
 };
 
-export type PostType = "post" | "board";
-
-export type BasePost = {
+export type Board = {
   id: string;
-  type: PostType;
+  type: "board";
   coordinate: Coordinate;
   emoji: string;
   title: string;
-  photo?: string | null;
+  description: string;
   createdAt: number;
+  missions: Mission[];
 };
 
-export type NormalPost = BasePost & {
-  type: "post";
-  content: string;
-  comments: CommentItem[];
-};
+export type ActivityStatus = "started" | "completed";
 
-export type BoardPost = {
+export type ParticipatedActivity = {
   id: string;
-  emoji?: string;
-  title: string;
-  content: string;
-  photo?: string | null;
-  createdAt: number;
-  comments: CommentItem[];
+  boardId: string;
+  boardTitle: string;
+  missionId: string;
+  missionType: MissionType;
+  missionTitle: string;
+  rewardCoins: number;
+  status: ActivityStatus;
+  startedAt: number;
+  completedAt?: number;
+  requiredMinutes?: number;
+  startCoordinate: Coordinate;
+  endCoordinate?: Coordinate;
 };
 
-export type Board = BasePost & {
-  type: "board";
-  description: string;
-  boardPosts: BoardPost[];
-};
-
-export type Post = NormalPost | Board;
-
-export type NewPostForm = {
-  coordinate: Coordinate | null;
-  emoji: string;
-  title: string;
-  content: string;
-  description: string;
-  photo: string | null;
-  type: PostType;
-};
-
-export type NewBoardPostForm = {
-  emoji: string;
-  title: string;
-  content: string;
-  photo: string | null;
-};
+export type Post = Board;

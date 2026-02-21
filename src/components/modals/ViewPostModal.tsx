@@ -2,276 +2,205 @@ import React from "react";
 import {
   Dimensions,
   FlatList,
-  Image,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
-  StyleProp,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  ViewStyle,
   ViewToken,
   ViewabilityConfig,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { CountdownTimer } from "../CountdownTimer";
 import { styles } from "../../styles/globalStyles";
 import { useMapStore } from "../../store/useMapStore";
-import { BoardPost, Post } from "../../types/map";
+import { Board, Coordinate, Mission, MissionType } from "../../types/map";
 
 const screenWidth = Dimensions.get("window").width;
 
 type Props = {
-  viewablePosts: Post[];
+  viewableBoards: Board[];
   safeInitialIndex: number;
-  onViewableItemsChanged: (info: { viewableItems: Array<ViewToken<Post>> }) => void;
+  onViewableItemsChanged: (info: { viewableItems: Array<ViewToken<Board>> }) => void;
   viewabilityConfig: ViewabilityConfig;
+  currentCoordinate: Coordinate | null;
 };
 
-type DetailPost = Pick<BoardPost, "id" | "emoji" | "title" | "content" | "photo" | "createdAt" | "comments">;
+const getMissionTypeText = (missionType: MissionType): string => {
+  if (missionType === "quiet_time_visit") return "한산 시간 방문 인증";
+  return "체류 시간 인증";
+};
+
+const getMissionTypeEmoji = (missionType: MissionType): string => {
+  if (missionType === "quiet_time_visit") return "🕒";
+  return "⏱️";
+};
 
 export const ViewPostModal = ({
-  viewablePosts,
+  viewableBoards,
   safeInitialIndex,
   onViewableItemsChanged,
   viewabilityConfig,
+  currentCoordinate,
 }: Props) => {
-  const detailScrollRefs = React.useRef<Record<string, ScrollView | null>>({});
-  const [pendingScrollKey, setPendingScrollKey] = React.useState<string | null>(null);
-
   const {
     viewModalVisible,
-    posts,
-    selectedBoardPost,
-    setSelectedBoardPost,
-    selectedBoardPostBoardId,
-    setSelectedBoardPostBoardId,
-    newComment,
-    setNewComment,
-    handleAddComment,
-    handleAddBoardPostComment,
-    setTargetBoardId,
-    setAddBoardPostModalVisible,
+    participatedActivities,
+    setMyActivitiesModalVisible,
+    certifyQuietTimeMission,
+    startStayMission,
+    completeStayMission,
     handleBackNavigation,
   } = useMapStore();
 
-  const registerDetailScrollRef = React.useCallback(
-    (scrollKey: string) => (node: ScrollView | null) => {
-      if (node) {
-        detailScrollRefs.current[scrollKey] = node;
-        return;
+  const renderMissionAction = (board: Board, mission: Mission) => {
+    const completedActivity = participatedActivities.find(
+      (activity) =>
+        activity.boardId === board.id && activity.missionId === mission.id && activity.status === "completed",
+    );
+    const inProgressActivity = participatedActivities.find(
+      (activity) =>
+        activity.boardId === board.id && activity.missionId === mission.id && activity.status === "started",
+    );
+
+    if (mission.type === "quiet_time_visit") {
+      if (completedActivity) {
+        return (
+          <Text style={styles.missionCompletedText}>
+            참여 완료 · +{completedActivity.rewardCoins} 코인
+          </Text>
+        );
       }
-      delete detailScrollRefs.current[scrollKey];
-    },
-    [],
-  );
 
-  const handleDetailContentSizeChange = React.useCallback(
-    (scrollKey: string) => {
-      if (pendingScrollKey !== scrollKey) return;
-
-      requestAnimationFrame(() => {
-        detailScrollRefs.current[scrollKey]?.scrollToEnd({ animated: true });
-        setPendingScrollKey((current) => (current === scrollKey ? null : current));
-      });
-    },
-    [pendingScrollKey],
-  );
-
-  const renderDetailPost = ({
-    detailPost,
-    useCountdown,
-    scrollKey,
-    scrollStyle,
-    onSubmitComment,
-  }: {
-    detailPost: DetailPost;
-    useCountdown: boolean;
-    scrollKey: string;
-    scrollStyle?: StyleProp<ViewStyle>;
-    onSubmitComment: () => void;
-  }) => (
-    <>
-      <ScrollView
-        ref={registerDetailScrollRef(scrollKey)}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="always"
-        onContentSizeChange={() => handleDetailContentSizeChange(scrollKey)}
-        style={scrollStyle}
-      >
-        <View style={styles.viewModalHeader}>
-          <Text style={styles.viewModalEmoji}>{detailPost.emoji || "📝"}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.viewModalTitle}>{detailPost.title}</Text>
-            {useCountdown ? (
-              <CountdownTimer createdAt={detailPost.createdAt} />
-            ) : (
-              <Text style={styles.timerText}>{new Date(detailPost.createdAt).toLocaleString()}</Text>
-            )}
-          </View>
-        </View>
-
-        {detailPost.photo && <Image source={{ uri: detailPost.photo }} style={styles.viewModalImage} resizeMode="cover" />}
-
-        <Text style={styles.viewModalDescription}>{detailPost.content}</Text>
-
-        <View style={styles.commentsSection}>
-          <Text style={styles.commentsTitle}>댓글</Text>
-          {detailPost.comments.map((comment) => (
-            <View key={comment.id} style={styles.commentItem}>
-              <Text style={styles.commentText}>{comment.text}</Text>
-              <Text style={styles.commentTime}>{comment.createdAt}</Text>
-            </View>
-          ))}
-          {detailPost.comments.length === 0 && <Text style={styles.noCommentsText}>아직 댓글이 없습니다.</Text>}
-        </View>
-      </ScrollView>
-
-      <View style={styles.commentInputContainer}>
-        <TextInput
-          style={styles.commentInput}
-          placeholder="댓글을 입력하세요"
-          placeholderTextColor="#8b8b8b"
-          value={newComment}
-          onChangeText={setNewComment}
-        />
+      return (
         <TouchableOpacity
-          style={styles.commentSubmitButton}
-          onPress={() => {
-            if (!newComment.trim()) {
-              Keyboard.dismiss();
-              return;
-            }
-            setPendingScrollKey(scrollKey);
-            Keyboard.dismiss();
-            onSubmitComment();
-          }}
+          style={[styles.button, styles.saveButton]}
+          onPress={() => certifyQuietTimeMission(board, mission, currentCoordinate)}
         >
-          <Ionicons name="send" size={16} color="white" />
+          <Text style={styles.buttonText}>GPS 인증하고 보상받기</Text>
         </TouchableOpacity>
-      </View>
-    </>
-  );
+      );
+    }
+
+    if (completedActivity) {
+      return (
+        <Text style={styles.missionCompletedText}>
+          참여 완료 · +{completedActivity.rewardCoins} 코인
+        </Text>
+      );
+    }
+
+    if (inProgressActivity) {
+      const elapsedMinutes = Math.floor((Date.now() - inProgressActivity.startedAt) / 60000);
+      const requiredMinutes = inProgressActivity.requiredMinutes ?? mission.minDurationMinutes ?? 0;
+
+      return (
+        <View style={styles.missionProgressContainer}>
+          <Text style={styles.missionProgressText}>
+            진행 중: {elapsedMinutes}분 / {requiredMinutes}분
+          </Text>
+          <TouchableOpacity
+            style={[styles.button, styles.saveButton]}
+            onPress={() => completeStayMission(inProgressActivity.id, currentCoordinate)}
+          >
+            <Text style={styles.buttonText}>체류 종료하고 검증</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <TouchableOpacity
+        style={[styles.button, styles.saveButton]}
+        onPress={() => startStayMission(board, mission, currentCoordinate)}
+      >
+        <Text style={styles.buttonText}>체류 시작 (GPS 기록)</Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Modal animationType="fade" transparent visible={viewModalVisible} onRequestClose={handleBackNavigation}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalContainer}>
-        <FlatList
-          data={viewablePosts}
-          extraData={posts}
-          keyExtractor={(item) => item.id}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          initialScrollIndex={safeInitialIndex}
-          getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          renderItem={({ item }) => (
-            <View style={{ width: screenWidth, justifyContent: "center", alignItems: "center" }}>
-              <View style={[styles.viewModalContent, { maxHeight: "80%", width: "85%" }]}>
-                <View style={styles.modalTopBar}>
-                  <TouchableOpacity style={styles.backButtonInline} onPress={handleBackNavigation}>
-                    <Ionicons name="arrow-back" size={16} color="#8b8b8b" />
-                    <Text style={styles.backButtonInlineText}>뒤로가기</Text>
-                  </TouchableOpacity>
-                  <View style={styles.swipeHintContainer}>
-                    <Ionicons name="swap-horizontal" size={14} color="#8b8b8b" />
-                    <Text style={styles.swipeHintText}>스와이프</Text>
-                  </View>
-                  <View style={styles.topBarSpacer} />
-                </View>
-
-                {item.type === "post" ? (
-                  renderDetailPost({
-                    detailPost: item,
-                    useCountdown: true,
-                    scrollKey: `post:${item.id}`,
-                    scrollStyle: { flexShrink: 1 },
-                    onSubmitComment: () => handleAddComment(item.id),
-                  })
-                ) : (
-                  <>
-                    {selectedBoardPost && selectedBoardPostBoardId === item.id ? (
-                      <View style={styles.inlineBoardPostContainer}>
-                        {renderDetailPost({
-                          detailPost: selectedBoardPost,
-                          useCountdown: false,
-                          scrollKey: `boardPost:${item.id}:${selectedBoardPost.id}`,
-                          scrollStyle: { maxHeight: 260, flexShrink: 1 },
-                          onSubmitComment: () => handleAddBoardPostComment(item.id, selectedBoardPost.id),
-                        })}
-                      </View>
-                    ) : (
-                      <>
-                        <View style={styles.boardHeader}>
-                          <Text style={styles.boardEmoji}>{item.emoji}</Text>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.boardTitle}>{item.title}</Text>
-                            <Text style={styles.boardDescription}>{item.description}</Text>
-                          </View>
-                        </View>
-
-                        {item.photo && <Image source={{ uri: item.photo }} style={styles.boardImage} resizeMode="cover" />}
-
-                        <View style={styles.boardPostsContainer}>
-                          <ScrollView
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="always"
-                            nestedScrollEnabled
-                            style={{ flexShrink: 1 }}
-                          >
-                            {item.boardPosts.map((bp) => (
-                              <TouchableOpacity
-                                key={bp.id}
-                                style={styles.boardPostItem}
-                                onPress={() => {
-                                  setSelectedBoardPost(bp);
-                                  setSelectedBoardPostBoardId(item.id);
-                                }}
-                              >
-                                <View style={styles.boardPostTitleRow}>
-                                  <Text style={styles.boardPostEmoji}>{bp.emoji || "📝"}</Text>
-                                  <Text style={styles.boardPostTitle}>{bp.title}</Text>
-                                </View>
-                                <Text style={styles.boardPostPreview} numberOfLines={1}>
-                                  {bp.content}
-                                </Text>
-                                <Text style={styles.boardPostTime}>
-                                  {new Date(bp.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </Text>
-                              </TouchableOpacity>
-                            ))}
-                            {item.boardPosts.length === 0 && (
-                              <Text style={styles.noCommentsText}>아직 게시글이 없습니다.</Text>
-                            )}
-                          </ScrollView>
-                        </View>
-
-                        <View style={styles.buttonContainer}>
-                          <TouchableOpacity
-                            style={[styles.button, styles.saveButton]}
-                            onPress={() => {
-                              setTargetBoardId(item.id);
-                              setAddBoardPostModalVisible(true);
-                            }}
-                          >
-                            <Text style={styles.buttonText}>글쓰기</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    )}
-                  </>
-                )}
-              </View>
+        {viewableBoards.length === 0 ? (
+          <View style={styles.viewModalContent}>
+            <Text style={styles.noCommentsText}>검색 조건에 맞는 게시판이 없습니다.</Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleBackNavigation}>
+                <Text style={styles.buttonText}>닫기</Text>
+              </TouchableOpacity>
             </View>
-          )}
-        />
+          </View>
+        ) : (
+          <FlatList
+            data={viewableBoards}
+            extraData={participatedActivities}
+            keyExtractor={(item) => item.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={safeInitialIndex}
+            getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            renderItem={({ item }) => (
+              <View style={{ width: screenWidth, justifyContent: "center", alignItems: "center" }}>
+                <View style={[styles.viewModalContent, { maxHeight: "80%", width: "88%" }]}>
+                  <View style={styles.modalTopBar}>
+                    <TouchableOpacity style={styles.backButtonInline} onPress={handleBackNavigation}>
+                      <Ionicons name="arrow-back" size={16} color="#8b8b8b" />
+                      <Text style={styles.backButtonInlineText}>뒤로가기</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.inlineActivitiesButton}
+                      onPress={() => setMyActivitiesModalVisible(true)}
+                    >
+                      <Ionicons name="list" size={14} color="#0d6efd" />
+                      <Text style={styles.inlineActivitiesButtonText}>내 활동</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.boardHeader}>
+                    <Text style={styles.boardEmoji}>{item.emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.boardTitle}>{item.title}</Text>
+                      <Text style={styles.boardDescription}>{item.description}</Text>
+                    </View>
+                  </View>
+
+                  <ScrollView
+                    style={styles.missionListContainer}
+                    contentContainerStyle={styles.missionListContent}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {item.missions.map((mission) => (
+                      <View key={mission.id} style={styles.missionCard}>
+                        <View style={styles.missionTitleRow}>
+                          <Text style={styles.missionEmoji}>{getMissionTypeEmoji(mission.type)}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.missionTitle}>{mission.title}</Text>
+                            <Text style={styles.missionTypeText}>{getMissionTypeText(mission.type)}</Text>
+                          </View>
+                          <Text style={styles.missionRewardText}>+{mission.rewardCoins}</Text>
+                        </View>
+
+                        <Text style={styles.missionDescription}>{mission.description}</Text>
+
+                        {mission.type === "stay_duration" && mission.minDurationMinutes ? (
+                          <Text style={styles.missionRuleText}>필수 체류 시간: {mission.minDurationMinutes}분</Text>
+                        ) : null}
+
+                        <View style={styles.missionActionContainer}>{renderMissionAction(item, mission)}</View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+            )}
+          />
+        )}
       </KeyboardAvoidingView>
     </Modal>
   );

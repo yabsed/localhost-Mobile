@@ -1,51 +1,32 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  BackHandler,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  ViewToken,
-  ViewabilityConfig,
-} from "react-native";
+import { Alert, BackHandler, Platform, TextInput, TouchableOpacity, View, ViewToken, ViewabilityConfig } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import MapView, { MapPressEvent, Marker, Region } from "react-native-maps";
+import MapView, { Marker, Region } from "react-native-maps";
 
-import { AddBoardPostModal } from "../components/modals/AddBoardPostModal";
-import { CreatePostModal } from "../components/modals/CreatePostModal";
 import { ViewPostModal } from "../components/modals/ViewPostModal";
+import { MyActivitiesModal } from "../components/modals/MyActivitiesModal";
 import { CustomMarker } from "../components/CustomMarker";
 import { styles } from "../styles/globalStyles";
 import { customMapStyle } from "../styles/mapStyles";
 import { useMapStore } from "../store/useMapStore";
-import { Post } from "../types/map";
+import { Board, Coordinate } from "../types/map";
 import { INITIAL_REGION } from "../utils/constants";
 
 export default function MapScreen() {
   const [myLocation, setMyLocation] = useState<Location.LocationObjectCoords | null>(null);
 
   const {
-    posts,
-    modalVisible,
-    isAddingPost,
-    selectedPost,
+    boards,
+    selectedBoard,
     viewModalVisible,
     searchQuery,
-    selectedBoardPost,
-    selectedBoardPostBoardId,
-    addBoardPostModalVisible,
-    setIsAddingPost,
-    updateNewPostField,
-    setSelectedPost,
+    myActivitiesModalVisible,
+    setSelectedBoard,
     setViewModalVisible,
     setSearchQuery,
-    setSelectedBoardPost,
-    setSelectedBoardPostBoardId,
+    setMyActivitiesModalVisible,
     handleBackNavigation,
-    setModalVisible,
   } = useMapStore();
 
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
@@ -72,7 +53,7 @@ export default function MapScreen() {
       );
     };
 
-    startTracking();
+    void startTracking();
 
     return () => {
       locationSubscription.current?.remove();
@@ -86,25 +67,16 @@ export default function MapScreen() {
     const subscription = BackHandler.addEventListener("hardwareBackPress", onHardwareBackPress);
 
     return () => subscription.remove();
-  }, [selectedBoardPost, selectedBoardPostBoardId, addBoardPostModalVisible, viewModalVisible, modalVisible, handleBackNavigation]);
+  }, [viewModalVisible, myActivitiesModalVisible, handleBackNavigation]);
 
-  const handleMapPress = (e: MapPressEvent) => {
-    if (!isAddingPost) return;
-    updateNewPostField("coordinate", e.nativeEvent.coordinate);
-    setIsAddingPost(false);
-    setModalVisible(true);
-  };
-
-  const handleMarkerPress = (post: Post) => {
-    setSelectedPost(post);
-    setSelectedBoardPost(null);
-    setSelectedBoardPostBoardId(null);
+  const handleMarkerPress = (board: Board) => {
+    setSelectedBoard(board);
     setViewModalVisible(true);
     const { latitudeDelta, longitudeDelta } = mapRegionRef.current;
     mapRef.current?.animateToRegion(
       {
-        latitude: post.coordinate.latitude,
-        longitude: post.coordinate.longitude,
+        latitude: board.coordinate.latitude,
+        longitude: board.coordinate.longitude,
         latitudeDelta,
         longitudeDelta,
       },
@@ -112,12 +84,10 @@ export default function MapScreen() {
     );
   };
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<ViewToken<Post>> }) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<ViewToken<Board>> }) => {
     const first = viewableItems[0]?.item;
     if (!first) return;
-    setSelectedPost(first);
-    setSelectedBoardPost(null);
-    setSelectedBoardPostBoardId(null);
+    setSelectedBoard(first);
     const { latitudeDelta, longitudeDelta } = mapRegionRef.current;
     mapRef.current?.animateToRegion(
       {
@@ -130,19 +100,28 @@ export default function MapScreen() {
     );
   }).current;
 
-  const filteredPosts = posts.filter((p) => {
+  const filteredBoards = boards.filter((board) => {
     const keyword = searchQuery.trim().toLowerCase();
     if (!keyword) return true;
-    if (p.type === "post") {
-      return p.title.toLowerCase().includes(keyword) || p.content.toLowerCase().includes(keyword);
-    }
-    return p.title.toLowerCase().includes(keyword) || p.description.toLowerCase().includes(keyword);
+
+    const boardTextMatch =
+      board.title.toLowerCase().includes(keyword) || board.description.toLowerCase().includes(keyword);
+    if (boardTextMatch) return true;
+
+    return board.missions.some(
+      (mission) =>
+        mission.title.toLowerCase().includes(keyword) || mission.description.toLowerCase().includes(keyword),
+    );
   });
 
-  const selectedPostIndexInFiltered = selectedPost ? filteredPosts.findIndex((p) => p.id === selectedPost.id) : 0;
-  const safeInitialIndex = selectedPostIndexInFiltered >= 0 ? selectedPostIndexInFiltered : 0;
-  const viewablePosts = filteredPosts;
+  const selectedBoardIndex = selectedBoard ? filteredBoards.findIndex((board) => board.id === selectedBoard.id) : 0;
+  const safeInitialIndex = selectedBoardIndex >= 0 ? selectedBoardIndex : 0;
+  const viewableBoards = filteredBoards;
   const viewabilityConfig = useRef<ViewabilityConfig>({ itemVisiblePercentThreshold: 50 }).current;
+
+  const currentCoordinate: Coordinate | null = myLocation
+    ? { latitude: myLocation.latitude, longitude: myLocation.longitude }
+    : null;
 
   return (
     <View style={styles.container}>
@@ -150,7 +129,7 @@ export default function MapScreen() {
         <Ionicons name="search" size={18} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="포스트/스테이션 검색"
+          placeholder="게시판/활동 검색"
           placeholderTextColor="#8b8b8b"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -163,7 +142,6 @@ export default function MapScreen() {
         initialRegion={INITIAL_REGION}
         showsUserLocation
         showsMyLocationButton={false}
-        onPress={handleMapPress}
         onRegionChangeComplete={(region) => {
           mapRegionRef.current = region;
         }}
@@ -172,16 +150,10 @@ export default function MapScreen() {
         {myLocation && (
           <Marker coordinate={{ latitude: myLocation.latitude, longitude: myLocation.longitude }} title="내 위치" />
         )}
-        {filteredPosts.map((post) => (
-          <CustomMarker key={post.id} post={post} onPress={() => handleMarkerPress(post)} />
+        {filteredBoards.map((board) => (
+          <CustomMarker key={board.id} post={board} onPress={() => handleMarkerPress(board)} />
         ))}
       </MapView>
-
-      {isAddingPost && (
-        <View style={styles.instructionBanner}>
-          <Text style={styles.instructionText}>지도를 탭해서 게시물 위치를 선택하세요.</Text>
-        </View>
-      )}
 
       <TouchableOpacity
         style={styles.myLocationButton}
@@ -202,20 +174,19 @@ export default function MapScreen() {
         <Ionicons name="locate" size={22} color="#0d6efd" />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.addButton} onPress={() => setIsAddingPost(!isAddingPost)}>
-        <Ionicons name={isAddingPost ? "close" : "add"} size={22} color="white" />
+      <TouchableOpacity style={styles.myActivitiesButton} onPress={() => setMyActivitiesModalVisible(true)}>
+        <Ionicons name="list" size={20} color="white" />
       </TouchableOpacity>
 
-      <CreatePostModal />
-
       <ViewPostModal
-        viewablePosts={viewablePosts}
+        viewableBoards={viewableBoards}
         safeInitialIndex={safeInitialIndex}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
+        currentCoordinate={currentCoordinate}
       />
 
-      <AddBoardPostModal />
+      <MyActivitiesModal />
     </View>
   );
 }
