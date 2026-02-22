@@ -41,4 +41,4 @@ yarn-error.*
 # *.apk
 *.aab
 android/**/build/
-release/videos/0_라이브_데모.mp4
+demo/videos/0_라이브_데모.mp4
