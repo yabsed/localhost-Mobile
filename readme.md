@@ -107,7 +107,7 @@
 
 ### 5) 시간/체류/반복 방문 미션
 
-`1_위아래_스크롤링.gif`에서 목록으로 확인 가능한 미션 유형입니다.
+각 매장에서 위아래 스크롤링으로 확인할 수 있는 미션 유형입니다.
 
 - 한산 시간 방문 인증 (`quiet_time_visit`)
 - 체류 시작/종료 인증 (`stay_duration`)
@@ -157,55 +157,15 @@
 
 ```bash
 npm install
+
 npm run start
-```
-
-안드로이드 실행:
-
-```bash
 npm run android
 ```
 
-## 백엔드 연결 참고
-
-기본 API 주소는 현재 코드에 하드코딩되어 있습니다.
-
-- `src/store/useAuthStore.ts`
-- `src/api/missionDefinitionApi.ts`
-- `src/api/missionAttemptApi.ts`
-
-로컬 백엔드(`localhost-server`)로 붙일 때는 실행 환경(에뮬레이터/실기기)에 맞는 주소로 변경해야 합니다.
-
-## 검증 명령어
-
-텍스트 인코딩 검증(필수):
+배포용 APK: 
 
 ```bash
-npm run check:text
+cd android
+.\gradlew assembleRelease
 ```
 
-타입 검증(TypeScript 변경 시 필수):
-
-```bash
-npx tsc --noEmit
-```
-
-## 저장소 구조
-
-```text
-.
-├─ src/                      # React Native 프런트엔드 코드
-├─ localhost-server/         # 백엔드 팀 서버 코드
-├─ demo/
-│  ├─ images/                # 소개 이미지
-│  ├─ videos/                # mp4 클립/라이브 데모
-│  ├─ videos_gif/            # README용 GIF
-│  ├─ offline.apk
-│  └─ online.apk
-└─ scripts/check-text-encoding.mjs
-```
-
-## 요약
-
-이 프로젝트는 단순 체크인을 넘어서, 위치·시간·이미지 검증을 결합해  
-오프라인 행동을 신뢰도 있게 인증하는 **LBS 미션 리워드 프런트엔드**입니다.
