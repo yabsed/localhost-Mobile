@@ -38,6 +38,7 @@ yarn-error.*
 *.tsbuildinfo
 
 # build artifacts
-*.apk
+# *.apk
 *.aab
 android/**/build/
+release/0_라이브_데모.mp4
