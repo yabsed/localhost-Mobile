@@ -10,6 +10,8 @@ export type MissionType =
   | "camera_treasure_hunt"
   | "repeat_visit_stamp";
 
+export type QuietTimeDay = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+
 export type Mission = {
   id: string;
   type: MissionType;
@@ -19,6 +21,7 @@ export type Mission = {
   minDurationMinutes?: number;
   quietTimeStartHour?: number;
   quietTimeEndHour?: number;
+  quietTimeDays?: QuietTimeDay[];
   receiptItemName?: string;
   receiptItemPrice?: number;
   treasureGuideText?: string;

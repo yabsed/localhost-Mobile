@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { styles } from "../../styles/globalStyles";
 import { useMapStore } from "../../store/useMapStore";
-import { ActivityStatus, Board, Coordinate, Mission, MissionType } from "../../types/map";
+import { ActivityStatus, Board, Coordinate, Mission, MissionType, QuietTimeDay } from "../../types/map";
 import {
   buildCompressionSummary,
   compressImageForUpload,
@@ -47,6 +47,33 @@ const missionPriorityByType: Record<MissionType, number> = {
 };
 
 const formatWon = (amount: number): string => `${amount.toLocaleString("ko-KR")}원`;
+const toKoreanDay = (day: QuietTimeDay): string => {
+  if (day === "MON") return "월";
+  if (day === "TUE") return "화";
+  if (day === "WED") return "수";
+  if (day === "THU") return "목";
+  if (day === "FRI") return "금";
+  if (day === "SAT") return "토";
+  return "일";
+};
+const toHourLabel = (hourValue: number): string => {
+  const normalized = ((hourValue % 24) + 24) % 24;
+  const hour = Math.floor(normalized);
+  const minute = Math.round((normalized - hour) * 60);
+  const minuteText = minute > 0 ? ` ${minute}분` : "";
+  const period = hour < 12 ? "오전" : "오후";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${period} ${hour12}시${minuteText}`;
+};
+const formatQuietTimeRule = (mission: Mission): string | null => {
+  if (mission.type !== "quiet_time_visit") return null;
+  if (mission.quietTimeStartHour === undefined || mission.quietTimeEndHour === undefined) return null;
+
+  const dayText = mission.quietTimeDays && mission.quietTimeDays.length > 0
+    ? `${mission.quietTimeDays.map(toKoreanDay).join("/")}`
+    : "매일";
+  return `인증 가능: ${dayText} ${toHourLabel(mission.quietTimeStartHour)} ~ ${toHourLabel(mission.quietTimeEndHour)}`;
+};
 
 const getMissionTypeText = (missionType: MissionType): string => {
   if (missionType === "quiet_time_visit") return "한산 시간 방문 인증";
@@ -67,6 +94,16 @@ const getMissionTypeEmoji = (missionType: MissionType): string => {
 const getActivityStatusLabel = (status: ActivityStatus): string => {
   if (status === "completed") return "완료";
   return "진행중";
+};
+
+const formatRemainingDuration = (remainingMillis: number): string => {
+  const remainingSeconds = Math.max(Math.ceil(remainingMillis / 1000), 0);
+  const minutes = Math.floor(remainingSeconds / 60);
+  const seconds = remainingSeconds % 60;
+
+  if (minutes <= 0) return `${seconds}초`;
+  if (seconds <= 0) return `${minutes}분`;
+  return `${minutes}분 ${seconds}초`;
 };
 
 const toRadians = (degree: number): number => (degree * Math.PI) / 180;
@@ -106,6 +143,9 @@ export const ViewPostModal = ({
   const [submittingReceiptMissionId, setSubmittingReceiptMissionId] = useState<string | null>(null);
   const [submittingTreasureMissionId, setSubmittingTreasureMissionId] = useState<string | null>(null);
   const [missionImageSummaryByMissionId, setMissionImageSummaryByMissionId] = useState<Record<string, string>>({});
+  const [hiddenTreasureGuideImageByMissionId, setHiddenTreasureGuideImageByMissionId] = useState<
+    Record<string, boolean>
+  >({});
 
   const captureMissionImage = async (
     permissionDeniedMessage: string,
@@ -224,7 +264,9 @@ export const ViewPostModal = ({
 
           <TouchableOpacity
             style={[styles.button, styles.saveButton]}
-            onPress={() => certifyRepeatVisitMission(board, mission, currentCoordinate)}
+            onPress={() => {
+              void certifyRepeatVisitMission(board, mission, currentCoordinate);
+            }}
           >
             <Text style={styles.buttonText}>오늘 방문 인증하기</Text>
           </TouchableOpacity>
@@ -249,7 +291,9 @@ export const ViewPostModal = ({
       return (
         <TouchableOpacity
           style={[styles.button, styles.saveButton]}
-          onPress={() => certifyQuietTimeMission(board, mission, currentCoordinate)}
+          onPress={() => {
+            void certifyQuietTimeMission(board, mission, currentCoordinate);
+          }}
         >
           <Text style={styles.buttonText}>GPS 인증하고 보상받기</Text>
         </TouchableOpacity>
@@ -317,17 +361,26 @@ export const ViewPostModal = ({
     }
 
     if (inProgressActivity) {
-      const elapsedMinutes = Math.floor((Date.now() - inProgressActivity.startedAt) / 60000);
+      const elapsedMillis = Math.max(Date.now() - inProgressActivity.startedAt, 0);
+      const elapsedMinutes = Math.floor(elapsedMillis / 60000);
       const requiredMinutes = inProgressActivity.requiredMinutes ?? mission.minDurationMinutes ?? 0;
+      const remainingMillis = Math.max(requiredMinutes * 60 * 1000 - elapsedMillis, 0);
 
       return (
         <View style={styles.missionProgressContainer}>
           <Text style={styles.missionProgressText}>
             진행 중 {elapsedMinutes}분 / {requiredMinutes}분
           </Text>
+          {requiredMinutes > 0 ? (
+            <Text style={styles.missionRuleText}>
+              {remainingMillis > 0 ? `남은 시간 약 ${formatRemainingDuration(remainingMillis)}` : "최소 체류 시간 충족"}
+            </Text>
+          ) : null}
           <TouchableOpacity
             style={[styles.button, styles.saveButton]}
-            onPress={() => completeStayMission(inProgressActivity.id, currentCoordinate)}
+            onPress={() => {
+              void completeStayMission(inProgressActivity.id, currentCoordinate);
+            }}
           >
             <Text style={styles.buttonText}>체류 종료하고 검증</Text>
           </TouchableOpacity>
@@ -338,7 +391,9 @@ export const ViewPostModal = ({
     return (
       <TouchableOpacity
         style={[styles.button, styles.saveButton]}
-        onPress={() => startStayMission(board, mission, currentCoordinate)}
+        onPress={() => {
+          void startStayMission(board, mission, currentCoordinate);
+        }}
       >
         <Text style={styles.buttonText}>체류 시작 (GPS 기록)</Text>
       </TouchableOpacity>
@@ -370,6 +425,9 @@ export const ViewPostModal = ({
 
             <Text style={styles.missionDescription}>{mission.description}</Text>
 
+            {mission.type === "quiet_time_visit" && formatQuietTimeRule(mission) ? (
+              <Text style={styles.missionRuleText}>{formatQuietTimeRule(mission)}</Text>
+            ) : null}
             {mission.type === "stay_duration" && mission.minDurationMinutes ? (
               <Text style={styles.missionRuleText}>필수 체류 시간: {mission.minDurationMinutes}분</Text>
             ) : null}
@@ -378,19 +436,28 @@ export const ViewPostModal = ({
                 목표 스탬프: {mission.stampGoalCount}개 (하루 1회 인증)
               </Text>
             ) : null}
-            {mission.type === "receipt_purchase" &&
-            mission.receiptItemName &&
-            mission.receiptItemPrice !== undefined ? (
+            {mission.type === "receipt_purchase" && mission.receiptItemName ? (
               <Text style={styles.missionRuleText}>
-                구매 대상: {mission.receiptItemName} ({formatWon(mission.receiptItemPrice)})
+                구매 대상: {mission.receiptItemName}
+                {mission.receiptItemPrice !== undefined ? ` (${formatWon(mission.receiptItemPrice)})` : ""}
               </Text>
             ) : null}
-            {mission.type === "camera_treasure_hunt" &&
-            mission.treasureGuideText &&
-            mission.treasureGuideImageUri ? (
+            {mission.type === "camera_treasure_hunt" && mission.treasureGuideText ? (
               <View style={styles.missionTreasureGuideContainer}>
                 <Text style={styles.missionRuleText}>보물 힌트: {mission.treasureGuideText}</Text>
-                <Image source={{ uri: mission.treasureGuideImageUri }} style={styles.missionTreasureGuideImage} />
+                {mission.treasureGuideImageUri && !hiddenTreasureGuideImageByMissionId[mission.id] ? (
+                  <Image
+                    source={{ uri: mission.treasureGuideImageUri }}
+                    style={styles.missionTreasureGuideImage}
+                    resizeMode="cover"
+                    onError={() => {
+                      setHiddenTreasureGuideImageByMissionId((current) => ({
+                        ...current,
+                        [mission.id]: true,
+                      }));
+                    }}
+                  />
+                ) : null}
               </View>
             ) : null}
 

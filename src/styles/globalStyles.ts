@@ -32,6 +32,21 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     color: "#212529",
   },
+  loadingOverlay: {
+    position: "absolute",
+    top: 108,
+    alignSelf: "center",
+    backgroundColor: "rgba(19, 29, 48, 0.85)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    zIndex: 20,
+  },
+  loadingOverlayText: {
+    color: "#f6f7fb",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   authInput: {
     borderWidth: 1,
     borderColor: "#d5dfef",
@@ -745,12 +760,13 @@ export const styles = StyleSheet.create({
   },
   missionTreasureGuideContainer: {
     width: "100%",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   missionTreasureGuideImage: {
     width: "100%",
-    height: 140,
+    height: 96,
     borderRadius: 10,
+    marginTop: 4,
   },
   missionProgressContainer: {
     width: "100%",
