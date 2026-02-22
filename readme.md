@@ -1,4 +1,4 @@
-# localhost
+﻿# localhost
 
 <img src="./assets/icon.png" alt="localhost 아이콘" style="display: block; max-width: 96px; width: 100%; height: auto;" />
 
@@ -35,9 +35,11 @@
 
 ### 1) 지도 탐색과 매장 전환
 
-<img src="./release/videos_gif/8_축소.gif" alt="지도 축소/탐색" style="display: block; max-width: 260px; width: 100%; height: auto;" />
-<img src="./release/videos_gif/2_좌우_스와이핑.gif" alt="매장 카드 좌우 스와이프" style="display: block; max-width: 260px; width: 100%; height: auto;" />
-<img src="./release/videos_gif/1_위아래_스크롤링.gif" alt="미션 목록 세로 스크롤" style="display: block; max-width: 260px; width: 100%; height: auto;" />
+<p>
+  <img src="./release/videos_gif/8_축소.gif" alt="지도 축소/탐색" width="220" />
+  <img src="./release/videos_gif/2_좌우_스와이핑.gif" alt="매장 카드 좌우 스와이프" width="220" />
+  <img src="./release/videos_gif/1_위아래_스크롤링.gif" alt="미션 목록 세로 스크롤" width="220" />
+</p>
 
 - 지도에서 매장 마커를 선택하면 해당 매장 카드가 열립니다.
 - 카드 좌우 스와이프 시 다음 매장으로 이동하며, 지도 중심도 해당 매장으로 애니메이션 이동합니다.
@@ -50,7 +52,7 @@
 
 ### 2) 로그인과 토큰 캐싱
 
-<img src="./release/videos_gif/3_초기_실행_및_토큰_캐싱.gif" alt="초기 실행 및 토큰 캐싱" style="display: block; max-width: 260px; width: 100%; height: auto;" />
+<img src="./release/videos_gif/3_초기_실행_및_토큰_캐싱.gif" alt="초기 실행 및 토큰 캐싱" width="220" />
 
 - 로그인/회원가입 후 토큰을 로컬에 저장해 앱 재실행 시 인증 상태를 유지합니다.
 - 계정 모달에서 현재 로그인 사용자와 역할(USER)을 확인하고 로그아웃할 수 있습니다.
@@ -62,8 +64,10 @@
 
 ### 3) 영수증 구매 인증 (성공/실패)
 
-<img src="./release/videos_gif/4_영수증_성공.gif" alt="영수증 인증 성공" style="display: block; max-width: 260px; width: 100%; height: auto;" />
-<img src="./release/videos_gif/5_영수증_실패.gif" alt="영수증 인증 실패" style="display: block; max-width: 260px; width: 100%; height: auto;" />
+<p>
+  <img src="./release/videos_gif/4_영수증_성공.gif" alt="영수증 인증 성공" width="220" />
+  <img src="./release/videos_gif/5_영수증_실패.gif" alt="영수증 인증 실패" width="220" />
+</p>
 
 - 사용자가 카메라로 영수증을 촬영하면 서버에 인증 요청을 보냅니다.
 - 구매 대상 품목이 맞으면 성공하고 코인이 지급됩니다.
@@ -77,8 +81,10 @@
 
 ### 4) 카메라 보물찾기 (성공/실패)
 
-<img src="./release/videos_gif/6_보물찾기_성공.gif" alt="보물찾기 인증 성공" style="display: block; max-width: 260px; width: 100%; height: auto;" />
-<img src="./release/videos_gif/7_보물찾기_실패.gif" alt="보물찾기 인증 실패" style="display: block; max-width: 260px; width: 100%; height: auto;" />
+<p>
+  <img src="./release/videos_gif/6_보물찾기_성공.gif" alt="보물찾기 인증 성공" width="220" />
+  <img src="./release/videos_gif/7_보물찾기_실패.gif" alt="보물찾기 인증 실패" width="220" />
+</p>
 
 - 가이드 이미지/문구를 참고해 동일한 대상을 촬영하면 인증됩니다.
 - 유사도가 낮거나 다른 대상을 촬영하면 실패 처리됩니다.
@@ -191,3 +197,5 @@ npx tsc --noEmit
 
 이 프로젝트는 단순 체크인을 넘어서, 위치·시간·이미지 검증을 결합해  
 오프라인 행동을 신뢰도 있게 인증하는 **LBS 미션 리워드 프런트엔드**입니다.
+
+
