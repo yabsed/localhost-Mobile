@@ -22,10 +22,10 @@ import { customMapStyle } from "../styles/mapStyles";
 import { useMapStore } from "../store/useMapStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { Board, Coordinate } from "../types/map";
-import { INITIAL_REGION } from "../utils/constants";
+import { FIXED_MY_LOCATION, INITIAL_REGION } from "../utils/constants";
 
 export default function MapScreen() {
-  const [myLocation, setMyLocation] = useState<Location.LocationObjectCoords | null>(null);
+  const [myLocation, setMyLocation] = useState<Coordinate | null>(null);
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const isIOS = Platform.OS === "ios";
 
@@ -59,6 +59,13 @@ export default function MapScreen() {
     let isActive = true;
 
     const startTracking = async () => {
+      if (FIXED_MY_LOCATION) {
+        if (!isActive) return;
+        setMyLocation(FIXED_MY_LOCATION);
+        await loadBoards(FIXED_MY_LOCATION);
+        return;
+      }
+
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
@@ -173,9 +180,7 @@ export default function MapScreen() {
   const viewableBoards = filteredBoards;
   const viewabilityConfig = useRef<ViewabilityConfig>({ itemVisiblePercentThreshold: 50 }).current;
 
-  const currentCoordinate: Coordinate | null = myLocation
-    ? { latitude: myLocation.latitude, longitude: myLocation.longitude }
-    : null;
+  const currentCoordinate: Coordinate | null = myLocation;
 
   return (
     <View style={styles.container}>
@@ -202,7 +207,7 @@ export default function MapScreen() {
         mapType={isIOS ? "mutedStandard" : "standard"}
         showsPointsOfInterest={!isIOS}
         showsBuildings={!isIOS}
-        showsUserLocation
+        showsUserLocation={!FIXED_MY_LOCATION}
         showsMyLocationButton={false}
         onRegionChangeComplete={(region) => {
           mapRegionRef.current = region;
