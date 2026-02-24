@@ -186,7 +186,9 @@ cd android
 ## 마무리
 
 상세 로직 문서:
--  [카메라 보물찾기 로직 완전 해설](./CAMERA_TREASURE_HUNT_LOGIC.md)
+- [카메라 보물찾기 로직 완전 해설](./CAMERA_TREASURE_HUNT_LOGIC.md)
+- [mapAttemptToParticipatedActivity 완전 해설](./MAP_ATTEMPT_TO_PARTICIPATED_ACTIVITY_FLOW.md)
+- [스탬프/체류시간 미션 처리 완전 해설](./STAMP_STAY_MISSION_FLOW.md)
 
 사이드 프로젝트:
 
